@@ -1,5 +1,8 @@
 import SwiftUI
 import AppKit
+import Combine
+import IOKit
+import ServiceManagement
 
 // MARK: - Models
 enum ModuleType: String, CaseIterable, Codable, Identifiable {
@@ -74,6 +77,7 @@ struct SideBarApp: App {
 struct SettingsView: View {
     @EnvironmentObject private var store: ModuleStore
     @State private var selectedModuleType: ModuleType = .cpu
+    @AppStorage("launchAtLogin") private var launchAtLogin = false
     
     var body: some View {
         VStack {
@@ -110,7 +114,23 @@ struct SettingsView: View {
                     store.modules.remove(atOffsets: indexSet)
                 }
             }
-            .frame(minHeight: 300)
+            .frame(minHeight: 250)
+            
+            Toggle("随系统启动 (Launch at Login)", isOn: $launchAtLogin)
+                .onChange(of: launchAtLogin) { newValue in
+                    do {
+                        if newValue {
+                            try SMAppService.mainApp.register()
+                        } else {
+                            try SMAppService.mainApp.unregister()
+                        }
+                    } catch {
+                        print("Failed to change launch at login: \(error)")
+                        launchAtLogin = SMAppService.mainApp.status == .enabled
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 4)
             
             HStack {
                 Picker("新增模块", selection: $selectedModuleType) {
@@ -137,7 +157,10 @@ struct SettingsView: View {
                 .foregroundColor(.blue)
                 .padding(.bottom)
         }
-        .frame(width: 400, height: 500)
+        .frame(width: 400, height: 530)
+        .onAppear {
+            launchAtLogin = SMAppService.mainApp.status == .enabled
+        }
     }
 }
 
