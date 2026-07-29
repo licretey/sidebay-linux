@@ -1,0 +1,7 @@
+.DS_Store
+.build/
+SideBarApp.app
+SideBarApp.app.zip
+DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
