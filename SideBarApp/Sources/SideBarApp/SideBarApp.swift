@@ -64,15 +64,15 @@ struct SideBarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var body: some Scene {
-        Window("设置", id: "settings") {
-            SettingsView()
+        Settings {
+            EmptyView()
         }
     }
 }
 
 // MARK: - Settings View (后台)
 struct SettingsView: View {
-    @StateObject private var store = ModuleStore.shared
+    @EnvironmentObject private var store: ModuleStore
     @State private var selectedModuleType: ModuleType = .cpu
     
     var body: some View {
@@ -130,6 +130,11 @@ struct SettingsView: View {
             Text("提示：按住行可以拖拽排序，点击右侧垃圾桶图标即可删除。")
                 .font(.caption)
                 .foregroundColor(.secondary)
+                .padding(.bottom, 8)
+                
+            Link("Visit sunnydodo.top", destination: URL(string: "https://sunnydodo.top")!)
+                .font(.footnote)
+                .foregroundColor(.blue)
                 .padding(.bottom)
         }
         .frame(width: 400, height: 500)
@@ -142,7 +147,29 @@ class SidebarPanel: NSPanel {
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    var window: NSWindow!
+    static private(set) var shared: AppDelegate!
+    
+    var panel: SidebarPanel!
+    var moduleStore = ModuleStore()
+    
+    override init() {
+        super.init()
+        AppDelegate.shared = self
+    }
+    
+    lazy var settingsWindow: NSWindow = {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 350, height: 500),
+            styleMask: [.titled, .closable, .miniaturizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "后台设置"
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.contentView = NSHostingView(rootView: SettingsView().environmentObject(moduleStore))
+        return window
+    }()
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory) // Hide Dock icon
@@ -154,26 +181,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let width = savedWidth > 0 ? CGFloat(savedWidth) : defaultWidth
         let rect = NSRect(x: screenRect.minX, y: screenRect.minY, width: width, height: screenRect.height)
         
-        window = SidebarPanel(
+        panel = SidebarPanel(
             contentRect: rect,
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
         
-        window.level = .floating
-        window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
-        window.isOpaque = false
-        window.backgroundColor = NSColor.clear
-        window.hasShadow = false
+        panel.level = .floating
+        panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        panel.isOpaque = false
+        panel.backgroundColor = NSColor.clear
+        panel.hasShadow = false
         
         let hostingController = NSHostingController(rootView: MainSidebarView())
-        window.contentView = hostingController.view
-        window.makeKeyAndOrderFront(nil)
+        panel.contentView = hostingController.view
+        panel.makeKeyAndOrderFront(nil)
     }
     
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
+    }
+    
+    func openSettings() {
+        settingsWindow.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
 
@@ -205,7 +237,6 @@ struct MainSidebarView: View {
     @AppStorage("bgOpacity") var bgOpacity: Double = 1.0
     @State private var window: NSWindow?
     @State private var initialWidth: CGFloat = 0
-    @Environment(\.openWindow) private var openWindow
     
     var body: some View {
         VStack(spacing: 0) {
@@ -227,10 +258,9 @@ struct MainSidebarView: View {
                     .help("调节背景透明度")
                 
                 Button(action: {
-                    openWindow(id: "settings")
-                    NSApp.activate(ignoringOtherApps: true)
+                    AppDelegate.shared.openSettings()
                 }) {
-                    Image(systemName: "gear")
+                    Image(systemName: "gearshape.fill")
                         .foregroundColor(.primary)
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -778,15 +808,19 @@ struct CalculatorView: View {
 
 class KeyboardListener: ObservableObject {
     @Published var currentKeys: String = "等待输入..."
-    private var globalMonitor: Any?
+    private var runLoopSource: CFRunLoopSource?
+    private var eventTap: CFMachPort?
     
     init() {
         startMonitoring()
     }
     
     deinit {
-        if let monitor = globalMonitor {
-            NSEvent.removeMonitor(monitor)
+        if let tap = eventTap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+        }
+        if let source = runLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetCurrent(), source, .commonModes)
         }
     }
     
@@ -796,45 +830,125 @@ class KeyboardListener: ObservableObject {
         
         if !accessEnabled {
             currentKeys = "无辅助功能权限"
+            return
         }
         
-        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            self?.handleEvent(event)
+        let mask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.flagsChanged.rawValue)
+        
+        eventTap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .listenOnly,
+            eventsOfInterest: CGEventMask(mask),
+            callback: { (proxy, type, event, refcon) -> Unmanaged<CGEvent>? in
+                if let observer = refcon {
+                    let mySelf = Unmanaged<KeyboardListener>.fromOpaque(observer).takeUnretainedValue()
+                    mySelf.handleCGEvent(event, type: type)
+                }
+                return Unmanaged.passUnretained(event)
+            },
+            userInfo: Unmanaged.passUnretained(self).toOpaque()
+        )
+        
+        if let tap = eventTap {
+            runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+            CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
+            CGEvent.tapEnable(tap: tap, enable: true)
+            currentKeys = ""
         }
     }
     
-    private func handleEvent(_ event: NSEvent) {
+    private func handleCGEvent(_ event: CGEvent, type: CGEventType) {
         var keys = ""
-        let flags = event.modifierFlags
+        let flags = event.flags
         
-        if flags.contains(.control) { keys += "⌃ " }
-        if flags.contains(.option) { keys += "⌥ " }
-        if flags.contains(.shift) { keys += "⇧ " }
-        if flags.contains(.command) { keys += "⌘ " }
+        if flags.contains(.maskControl) { keys += "⌃ " }
+        if flags.contains(.maskAlternate) { keys += "⌥ " }
+        if flags.contains(.maskShift) { keys += "⇧ " }
+        if flags.contains(.maskCommand) { keys += "⌘ " }
         
-        if let chars = event.charactersIgnoringModifiers?.uppercased(), !chars.isEmpty {
-            switch event.keyCode {
-            case 36: keys += "⏎"
-            case 49: keys += "␣"
-            case 51: keys += "⌫"
-            case 53: keys += "⎋"
-            case 48: keys += "⇥"
-            case 123: keys += "←"
-            case 124: keys += "→"
-            case 125: keys += "↓"
-            case 126: keys += "↑"
-            default: keys += chars
-            }
+        if type == .keyDown {
+            let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
+            let charStr = keycodeToString(UInt16(keyCode))
+            if !charStr.isEmpty { keys += charStr }
         }
         
+        let finalKeys = keys.trimmingCharacters(in: .whitespaces)
+        
         DispatchQueue.main.async {
-            self.currentKeys = keys.trimmingCharacters(in: .whitespaces)
+            if !finalKeys.isEmpty {
+                self.currentKeys = finalKeys
+            } else if type == .flagsChanged {
+                self.currentKeys = ""
+            }
         }
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            if self.currentKeys == keys.trimmingCharacters(in: .whitespaces) {
+            if self.currentKeys == finalKeys {
                 self.currentKeys = ""
             }
+        }
+    }
+    
+    private func keycodeToString(_ code: UInt16) -> String {
+        switch code {
+        case 0: return "A"
+        case 1: return "S"
+        case 2: return "D"
+        case 3: return "F"
+        case 4: return "H"
+        case 5: return "G"
+        case 6: return "Z"
+        case 7: return "X"
+        case 8: return "C"
+        case 9: return "V"
+        case 11: return "B"
+        case 12: return "Q"
+        case 13: return "W"
+        case 14: return "E"
+        case 15: return "R"
+        case 16: return "Y"
+        case 17: return "T"
+        case 18: return "1"
+        case 19: return "2"
+        case 20: return "3"
+        case 21: return "4"
+        case 22: return "6"
+        case 23: return "5"
+        case 24: return "="
+        case 25: return "9"
+        case 26: return "7"
+        case 27: return "-"
+        case 28: return "8"
+        case 29: return "0"
+        case 30: return "]"
+        case 31: return "O"
+        case 32: return "U"
+        case 33: return "["
+        case 34: return "I"
+        case 35: return "P"
+        case 36: return "⏎"
+        case 37: return "L"
+        case 38: return "J"
+        case 39: return "'"
+        case 40: return "K"
+        case 41: return ";"
+        case 42: return "\\"
+        case 43: return ","
+        case 44: return "/"
+        case 45: return "N"
+        case 46: return "M"
+        case 47: return "."
+        case 48: return "⇥"
+        case 49: return "␣"
+        case 50: return "`"
+        case 51: return "⌫"
+        case 53: return "⎋"
+        case 123: return "←"
+        case 124: return "→"
+        case 125: return "↓"
+        case 126: return "↑"
+        default: return ""
         }
     }
 }
