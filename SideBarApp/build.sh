@@ -19,6 +19,11 @@ mkdir -p "$RESOURCES_DIR"
 echo "Copying executable..."
 cp ".build/release/$APP_NAME" "$MACOS_DIR/"
 
+echo "Copying icon..."
+if [ -f "AppIcon.icns" ]; then
+    cp "AppIcon.icns" "$RESOURCES_DIR/"
+fi
+
 echo "Creating Info.plist..."
 cat > "$APP_BUNDLE/Contents/Info.plist" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -29,6 +34,8 @@ cat > "$APP_BUNDLE/Contents/Info.plist" << EOF
     <string>$APP_NAME</string>
     <key>CFBundleIdentifier</key>
     <string>com.sidebay.sidebarapp</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleName</key>
     <string>$APP_NAME</string>
     <key>CFBundleVersion</key>
