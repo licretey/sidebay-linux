@@ -240,10 +240,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var panel: SidebarPanel!
     var moduleStore = ModuleStore.shared
     
+
+    @objc func handleOpenSettingsNotification() {
+        DispatchQueue.main.async {
+            self.openSettings()
+        }
+    }
+    
     override init() {
         super.init()
+        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier ?? "com.sidebay.sidebarapp")
+        if runningApps.filter({ $0.processIdentifier != ProcessInfo.processInfo.processIdentifier }).count > 0 {
+            DistributedNotificationCenter.default().post(name: NSNotification.Name("OpenSettings"), object: nil)
+            NSApp.terminate(nil)
+        } else {
+            DistributedNotificationCenter.default().addObserver(self, selector: #selector(handleOpenSettingsNotification), name: NSNotification.Name("OpenSettings"), object: nil)
+        }
         AppDelegate.shared = self
     }
+
     
     lazy var settingsWindow: NSWindow = {
         let window = NSWindow(
