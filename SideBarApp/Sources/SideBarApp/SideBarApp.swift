@@ -579,7 +579,7 @@ struct StockView: View {
     }
     
     var body: some View {
-        VStack {
+        VStack(spacing: 4) {
             if isEditing {
                 TextField("sh000001", text: $inputSymbol)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -598,12 +598,19 @@ struct StockView: View {
                     .font(.system(size: 13, weight: .bold, design: .rounded))
                     .foregroundColor(.primary.opacity(0.85))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                Spacer()
+                    .fixedSize(horizontal: false, vertical: true)
+                
+                Spacer(minLength: 0)
+                
                 Text(price)
                     .font(.system(size: 18, weight: .heavy, design: .rounded))
                     .foregroundColor(isUp ? .red : .green)
                     .shadow(color: (isUp ? Color.red : Color.green).opacity(0.2), radius: 2, x: 0, y: 1)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
+                
+                Spacer(minLength: 0)
+                
                 if !change.isEmpty {
                     Text(change)
                         .font(.system(size: 11, weight: .semibold))
@@ -612,11 +619,12 @@ struct StockView: View {
                         .padding(.vertical, 2)
                         .background((isUp ? Color.red : Color.green).opacity(0.15))
                         .cornerRadius(4)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer()
             }
         }
-        .padding()
+        .padding(8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
