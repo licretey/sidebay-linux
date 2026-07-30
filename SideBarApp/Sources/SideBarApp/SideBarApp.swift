@@ -286,7 +286,7 @@ struct VisualEffectBackground: NSViewRepresentable {
         let view = NSVisualEffectView()
         view.blendingMode = .behindWindow
         view.state = .active
-        view.material = .sidebar
+        view.material = .hudWindow // Gives a highly polished dark glass look
         return view
     }
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
@@ -342,7 +342,31 @@ struct MainSidebarView: View {
             .padding(.vertical, 8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(VisualEffectBackground().opacity(bgOpacity))
+        .background(
+            ZStack {
+                VisualEffectBackground()
+                
+                LinearGradient(
+                    gradient: Gradient(colors: [Color.white.opacity(0.2), Color.clear, Color.white.opacity(0.05)]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .blendMode(.softLight)
+            }
+            .opacity(bgOpacity)
+        )
+        .overlay(
+            Rectangle()
+                .stroke(
+                    LinearGradient(
+                        gradient: Gradient(colors: [Color.white.opacity(0.5), Color.clear, Color.white.opacity(0.1)]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+                .allowsHitTesting(false)
+        )
         .background(WindowAccessor(window: $window))
         .overlay(
             HStack {
