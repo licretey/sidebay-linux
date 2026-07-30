@@ -28,6 +28,9 @@ func t(_ key: String, _ lang: String) -> String {
         "Not Set": ["en": "Not Set", "zh": "未设置"],
         "Add Module": ["en": "Add Module", "zh": "新增模块"],
         "Add": ["en": "Add", "zh": "添加"],
+        "Position": ["en": "Position", "zh": "位置"],
+        "Left": ["en": "Left", "zh": "左边"],
+        "Right": ["en": "Right", "zh": "右边"],
         "Launch at Login": ["en": "Launch at Login", "zh": "随系统启动"],
         "Hint": ["en": "Hint: Drag to reorder, click trash to delete.", "zh": "提示：按住行可以拖拽排序，点击右侧垃圾桶图标即可删除。"],
         "Language": ["en": "Language", "zh": "语言"],
@@ -114,9 +117,9 @@ struct SideBarApp: App {
 struct SettingsView: View {
     @EnvironmentObject private var store: ModuleStore
     @State private var selectedModuleType: ModuleType = .cpu
+    @AppStorage("sidebarPosition") private var dockPosition = "left"
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage("language") private var lang = "zh"
-    
     var body: some View {
         VStack {
             Text(t("Settings", lang))
@@ -164,6 +167,19 @@ struct SettingsView: View {
             .padding(.horizontal)
             .padding(.top, 4)
 
+            
+            HStack {
+                Text(t("Position", lang))
+                Spacer()
+                Picker("", selection: $dockPosition) {
+                    Text(t("Left", lang)).tag("left")
+                    Text(t("Right", lang)).tag("right")
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .frame(width: 150)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 4)
             
             Toggle(t("Launch at Login", lang), isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { newValue in
@@ -243,19 +259,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return window
     }()
     
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory) // Hide Dock icon
-        
+    @objc func updateWindowFrame() {
+        guard let panel = panel else { return }
         let screen = NSScreen.main ?? NSScreen.screens[0]
         let screenRect = screen.visibleFrame
         let defaultWidth = screen.frame.width / 20
         let savedWidth = UserDefaults.standard.double(forKey: "sidebarWidth")
         let width = savedWidth > 0 ? CGFloat(savedWidth) : defaultWidth
         let padding: CGFloat = 12
-        let rect = NSRect(x: screenRect.minX + padding, y: screenRect.minY + padding, width: width, height: screenRect.height - padding * 2)
+        let pos = UserDefaults.standard.string(forKey: "sidebarPosition") ?? "left"
+        
+        let xPos = pos == "right" ? screenRect.maxX - width : screenRect.minX
+        let rect = NSRect(x: xPos, y: screenRect.minY + padding, width: width, height: screenRect.height - padding * 2)
+        panel.setFrame(rect, display: true)
+    }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory) // Hide Dock icon
+        NotificationCenter.default.addObserver(self, selector: #selector(updateWindowFrame), name: UserDefaults.didChangeNotification, object: nil)
         
         panel = SidebarPanel(
-            contentRect: rect,
+            contentRect: NSRect.zero,
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -269,6 +293,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         let hostingController = NSHostingController(rootView: MainSidebarView())
         panel.contentView = hostingController.view
+        updateWindowFrame()
         panel.makeKeyAndOrderFront(nil)
     }
     
@@ -311,6 +336,7 @@ struct MainSidebarView: View {
     @State private var window: NSWindow?
     @State private var initialWidth: CGFloat = 0
     @AppStorage("language") private var lang = "zh"
+    @AppStorage("sidebarPosition") private var dockPosition = "left"
     
     var body: some View {
         VStack(spacing: 0) {
@@ -357,9 +383,9 @@ struct MainSidebarView: View {
             }
             .opacity(bgOpacity)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .clipShape(CustomRoundedCorner(radius: 24, corners: dockPosition == "left" ? RectCorner([.topRight, .bottomRight]) : RectCorner([.topLeft, .bottomLeft])))
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            CustomRoundedCorner(radius: 24, corners: dockPosition == "left" ? RectCorner([.topRight, .bottomRight]) : RectCorner([.topLeft, .bottomLeft]))
                 .strokeBorder(
                     LinearGradient(
                         gradient: Gradient(colors: [Color.white.opacity(0.7), Color.white.opacity(0.1), Color.black.opacity(0.5), Color.white.opacity(0.3)]),
@@ -480,6 +506,7 @@ struct NetworkSpeedView: View {
     let up: Double
     let down: Double
     @AppStorage("language") private var lang = "zh"
+    @AppStorage("sidebarPosition") private var dockPosition = "left"
     
     var body: some View {
         VStack(spacing: 8) {
@@ -518,6 +545,7 @@ struct FanSpeedView: View {
     let speed: Int
     @State private var rotation: Double = 0
     @AppStorage("language") private var lang = "zh"
+    @AppStorage("sidebarPosition") private var dockPosition = "left"
     
     var body: some View {
         VStack {
@@ -557,6 +585,7 @@ struct StockView: View {
     @State private var inputSymbol = ""
     
     @AppStorage("language") private var lang = "zh"
+    @AppStorage("sidebarPosition") private var dockPosition = "left"
         
     init(moduleId: UUID, initialSymbol: String) {
         self.moduleId = moduleId
@@ -675,6 +704,7 @@ struct CountdownView: View {
     @State private var isEditing = false
     @State private var inputMinutes = ""
         @AppStorage("language") private var lang = "zh"
+    @AppStorage("sidebarPosition") private var dockPosition = "left"
     
     var timeString: String {
         let minutes = timeRemaining / 60
@@ -750,6 +780,7 @@ struct StopwatchView: View {
     @State private var timeElapsed: Int = 0
     @State private var isActive = false
     @AppStorage("language") private var lang = "zh"
+    @AppStorage("sidebarPosition") private var dockPosition = "left"
         
     var timeString: String {
         let minutes = timeElapsed / 60
@@ -797,6 +828,7 @@ struct StopwatchView: View {
 
 struct ScreenRecordView: View {
     @AppStorage("language") private var lang = "zh"
+    @AppStorage("sidebarPosition") private var dockPosition = "left"
     var body: some View {
         VStack {
             Text(t("Screen Record", lang))
@@ -1086,6 +1118,7 @@ class KeyboardListener: ObservableObject {
 struct KeyboardMonitorView: View {
     @StateObject private var listener = KeyboardListener()
     @AppStorage("language") private var lang = "zh"
+    @AppStorage("sidebarPosition") private var dockPosition = "left"
     
     var body: some View {
         VStack {
@@ -1108,5 +1141,48 @@ struct KeyboardMonitorView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+struct RectCorner: OptionSet {
+    let rawValue: Int
+    static let topLeft = RectCorner(rawValue: 1 << 0)
+    static let topRight = RectCorner(rawValue: 1 << 1)
+    static let bottomLeft = RectCorner(rawValue: 1 << 2)
+    static let bottomRight = RectCorner(rawValue: 1 << 3)
+    static let allCorners: RectCorner = [.topLeft, .topRight, .bottomLeft, .bottomRight]
+}
+
+struct CustomRoundedCorner: InsettableShape {
+    var radius: CGFloat = .infinity
+    var corners: RectCorner = .allCorners
+    var insetAmount: CGFloat = 0
+
+    func inset(by amount: CGFloat) -> some InsettableShape {
+        var arc = self
+        arc.insetAmount += amount
+        return arc
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let r = rect.insetBy(dx: insetAmount, dy: insetAmount)
+        
+        let tl = corners.contains(.topLeft) ? radius : 0
+        let tr = corners.contains(.topRight) ? radius : 0
+        let bl = corners.contains(.bottomLeft) ? radius : 0
+        let br = corners.contains(.bottomRight) ? radius : 0
+        
+        path.move(to: CGPoint(x: r.minX + tl, y: r.minY))
+        path.addLine(to: CGPoint(x: r.maxX - tr, y: r.minY))
+        if tr > 0 { path.addArc(center: CGPoint(x: r.maxX - tr, y: r.minY + tr), radius: tr, startAngle: Angle(degrees: -90), endAngle: Angle(degrees: 0), clockwise: false) }
+        path.addLine(to: CGPoint(x: r.maxX, y: r.maxY - br))
+        if br > 0 { path.addArc(center: CGPoint(x: r.maxX - br, y: r.maxY - br), radius: br, startAngle: Angle(degrees: 0), endAngle: Angle(degrees: 90), clockwise: false) }
+        path.addLine(to: CGPoint(x: r.minX + bl, y: r.maxY))
+        if bl > 0 { path.addArc(center: CGPoint(x: r.minX + bl, y: r.maxY - bl), radius: bl, startAngle: Angle(degrees: 90), endAngle: Angle(degrees: 180), clockwise: false) }
+        path.addLine(to: CGPoint(x: r.minX, y: r.minY + tl))
+        if tl > 0 { path.addArc(center: CGPoint(x: r.minX + tl, y: r.minY + tl), radius: tl, startAngle: Angle(degrees: 180), endAngle: Angle(degrees: 270), clockwise: false) }
+        path.closeSubpath()
+        return path
     }
 }
