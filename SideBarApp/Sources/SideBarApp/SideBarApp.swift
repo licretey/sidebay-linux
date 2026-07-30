@@ -251,7 +251,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let defaultWidth = screen.frame.width / 20
         let savedWidth = UserDefaults.standard.double(forKey: "sidebarWidth")
         let width = savedWidth > 0 ? CGFloat(savedWidth) : defaultWidth
-        let rect = NSRect(x: screenRect.minX, y: screenRect.minY, width: width, height: screenRect.height)
+        let padding: CGFloat = 12
+        let rect = NSRect(x: screenRect.minX + padding, y: screenRect.minY + padding, width: width, height: screenRect.height - padding * 2)
         
         panel = SidebarPanel(
             contentRect: rect,
@@ -346,27 +347,29 @@ struct MainSidebarView: View {
             ZStack {
                 VisualEffectBackground()
                 
+                // Dock-style cylindrical glass sheen
                 LinearGradient(
-                    gradient: Gradient(colors: [Color.white.opacity(0.2), Color.clear, Color.white.opacity(0.05)]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+                    gradient: Gradient(colors: [Color.white.opacity(0.35), Color.white.opacity(0.0), Color.black.opacity(0.3)]),
+                    startPoint: .leading,
+                    endPoint: .trailing
                 )
                 .blendMode(.softLight)
             }
             .opacity(bgOpacity)
         )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
         .overlay(
-            Rectangle()
-                .stroke(
+            RoundedRectangle(cornerRadius: 24)
+                .strokeBorder(
                     LinearGradient(
-                        gradient: Gradient(colors: [Color.white.opacity(0.5), Color.clear, Color.white.opacity(0.1)]),
+                        gradient: Gradient(colors: [Color.white.opacity(0.7), Color.white.opacity(0.1), Color.black.opacity(0.5), Color.white.opacity(0.3)]),
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    lineWidth: 1
+                    lineWidth: 1.5
                 )
-                .allowsHitTesting(false)
         )
+        .shadow(color: Color.black.opacity(0.4), radius: 15, x: 0, y: 10)
         .background(WindowAccessor(window: $window))
         .overlay(
             HStack {
