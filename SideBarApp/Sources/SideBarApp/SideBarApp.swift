@@ -173,7 +173,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     static private(set) var shared: AppDelegate!
     
     var panel: SidebarPanel!
-    var moduleStore = ModuleStore()
+    var moduleStore = ModuleStore.shared
     
     override init() {
         super.init()
@@ -484,6 +484,21 @@ struct StockView: View {
         _symbol = State(initialValue: initialSymbol)
     }
     
+    func formatStockSymbol(_ input: String) -> String {
+        let clean = input.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let numbers = clean.filter { $0.isNumber }
+        if numbers.count == 6 {
+            if numbers.hasPrefix("6") {
+                return "sh" + numbers
+            } else if numbers.hasPrefix("0") || numbers.hasPrefix("3") {
+                return "sz" + numbers
+            } else if numbers.hasPrefix("4") || numbers.hasPrefix("8") {
+                return "bj" + numbers
+            }
+        }
+        return clean
+    }
+    
     func fetchStock() {
         guard let url = URL(string: "https://qt.gtimg.cn/q=\(symbol)") else { return }
         URLSession.shared.dataTask(with: url) { data, response, error in
@@ -520,9 +535,9 @@ struct StockView: View {
                 TextField("sh000001", text: $inputSymbol)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .onSubmit {
-                        symbol = inputSymbol.isEmpty ? "sh000001" : inputSymbol
+                        let formatted = formatStockSymbol(inputSymbol)
+                        symbol = formatted.isEmpty ? "sh000001" : formatted
                         isEditing = false
-                        // Save back to store
                         if let idx = ModuleStore.shared.modules.firstIndex(where: { $0.id == moduleId }) {
                             ModuleStore.shared.modules[idx].customData = symbol
                         }
