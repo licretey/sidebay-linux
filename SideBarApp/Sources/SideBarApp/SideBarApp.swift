@@ -291,7 +291,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory) // Hide Dock icon
-        NotificationCenter.default.addObserver(self, selector: #selector(updateWindowFrame), name: UserDefaults.didChangeNotification, object: nil)
         
         panel = SidebarPanel(
             contentRect: NSRect.zero,
@@ -306,10 +305,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         panel.backgroundColor = NSColor.clear
         panel.hasShadow = false
         
-        let hostingController = NSHostingController(rootView: MainSidebarView())
-        panel.contentView = hostingController.view
+        // Set initial frame BEFORE adding content view to avoid triggering
+        // layout during UserDefaults observation setup
         updateWindowFrame()
+        
+        let hostingController = NSHostingController(
+            rootView: MainSidebarView(store: moduleStore).environmentObject(moduleStore)
+        )
+        panel.contentView = hostingController.view
         panel.makeKeyAndOrderFront(nil)
+        
+        // Register observer AFTER the hosting view is fully set up to prevent
+        // UserDefaults.didChangeNotification (fired by @AppStorage writes during
+        // SwiftUI's first body computation) from triggering a reentrant layout
+        // that causes AG::Graph::value_set precondition failure on macOS 26.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(self.updateWindowFrameAsync),
+                name: UserDefaults.didChangeNotification,
+                object: nil
+            )
+        }
+    }
+    
+    @objc func updateWindowFrameAsync() {
+        // Use async dispatch to avoid reentrant layout calls
+        DispatchQueue.main.async { [weak self] in
+            self?.updateWindowFrame()
+        }
     }
     
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -342,7 +366,8 @@ struct WindowAccessor: NSViewRepresentable {
     @Binding var window: NSWindow?
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
-        DispatchQueue.main.async { self.window = view.window }
+        // Use async to avoid triggering preference updates during initial layout
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { self.window = view.window }
         return view
     }
     func updateNSView(_ nsView: NSView, context: Context) {}
@@ -351,15 +376,22 @@ struct WindowAccessor: NSViewRepresentable {
 // MARK: - Main Sidebar View
 struct MainSidebarView: View {
     @StateObject private var monitor = SystemMonitor()
-    @StateObject private var store = ModuleStore.shared
+    @ObservedObject var store: ModuleStore
     @AppStorage("bgOpacity") var bgOpacity: Double = 1.0
-    @State private var window: NSWindow?
     @State private var initialWidth: CGFloat = 0
     @AppStorage("language") private var lang = "zh"
     @AppStorage("sidebarPosition") private var dockPosition = "left"
     
+    private var sideCorners: RectCorner {
+        // Full height, flush to screen — no rounded corners needed
+        return RectCorner([])
+    }
+    
     var body: some View {
-        VStack(spacing: 0) {
+        let corners = sideCorners
+        let shape = CustomRoundedCorner(radius: 24, corners: corners)
+        
+        return VStack(spacing: 0) {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     ForEach(store.modules) { module in
@@ -403,20 +435,18 @@ struct MainSidebarView: View {
             }
             .opacity(bgOpacity)
         )
-        .clipShape(CustomRoundedCorner(radius: 24, corners: dockPosition == "left" ? RectCorner([.topRight, .bottomRight]) : RectCorner([.topLeft, .bottomLeft])))
+        .clipShape(shape)
         .overlay(
-            CustomRoundedCorner(radius: 24, corners: dockPosition == "left" ? RectCorner([.topRight, .bottomRight]) : RectCorner([.topLeft, .bottomLeft]))
-                .strokeBorder(
-                    LinearGradient(
-                        gradient: Gradient(colors: [Color.white.opacity(0.7), Color.white.opacity(0.1), Color.black.opacity(0.5), Color.white.opacity(0.3)]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.5
-                )
+            shape.stroke(
+                LinearGradient(
+                    gradient: Gradient(colors: [Color.white.opacity(0.7), Color.white.opacity(0.1), Color.black.opacity(0.5), Color.white.opacity(0.3)]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                lineWidth: 1.5
+            )
         )
         .shadow(color: Color.black.opacity(0.4), radius: 15, x: 0, y: 10)
-        .background(WindowAccessor(window: $window))
         .overlay(
             HStack {
                 Spacer()
@@ -429,7 +459,7 @@ struct MainSidebarView: View {
                     .gesture(
                         DragGesture()
                             .onChanged { value in
-                                guard let win = window else { return }
+                                guard let win = AppDelegate.shared.panel else { return }
                                 if initialWidth == 0 { initialWidth = win.frame.width }
                                 let newWidth = max(50, initialWidth + value.translation.width)
                                 var frame = win.frame
@@ -438,7 +468,7 @@ struct MainSidebarView: View {
                             }
                             .onEnded { _ in
                                 initialWidth = 0
-                                if let win = window {
+                                if let win = AppDelegate.shared.panel {
                                     UserDefaults.standard.set(win.frame.width, forKey: "sidebarWidth")
                                 }
                             }
@@ -447,6 +477,7 @@ struct MainSidebarView: View {
         )
     }
     
+
     @ViewBuilder
     private func moduleView(for module: AppModule) -> some View {
         switch module.type {
@@ -1173,20 +1204,13 @@ struct RectCorner: OptionSet {
     static let allCorners: RectCorner = [.topLeft, .topRight, .bottomLeft, .bottomRight]
 }
 
-struct CustomRoundedCorner: InsettableShape {
+struct CustomRoundedCorner: Shape {
     var radius: CGFloat = .infinity
     var corners: RectCorner = .allCorners
-    var insetAmount: CGFloat = 0
-
-    func inset(by amount: CGFloat) -> some InsettableShape {
-        var arc = self
-        arc.insetAmount += amount
-        return arc
-    }
 
     func path(in rect: CGRect) -> Path {
         var path = Path()
-        let r = rect.insetBy(dx: insetAmount, dy: insetAmount)
+        let r = rect
         
         let tl = corners.contains(.topLeft) ? radius : 0
         let tr = corners.contains(.topRight) ? radius : 0

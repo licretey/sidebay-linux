@@ -28,18 +28,23 @@ class SystemMonitor: ObservableObject {
         
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
-            self.cpuUsage = self.getCPUUsage()
-            self.gpuUsage = self.getGPUUsage()
-            self.memoryUsage = self.getMemoryUsage()
+            let cpu = self.getCPUUsage()
+            let gpu = self.getGPUUsage()
+            let mem = self.getMemoryUsage()
             let net = self.getNetworkUsage()
-            self.networkUp = net.up
-            self.networkDown = net.down
-            
             let disk = self.getDiskUsage()
-            self.diskUsagePercent = disk.percent
-            self.diskFreeGB = disk.free
-            self.diskTotalGB = disk.total
-            self.fanSpeed = self.getFanSpeed()
+            let fan = self.getFanSpeed()
+            DispatchQueue.main.async {
+                self.cpuUsage = cpu
+                self.gpuUsage = gpu
+                self.memoryUsage = mem
+                self.networkUp = net.up
+                self.networkDown = net.down
+                self.diskUsagePercent = disk.percent
+                self.diskFreeGB = disk.free
+                self.diskTotalGB = disk.total
+                self.fanSpeed = fan
+            }
         }
     }
     

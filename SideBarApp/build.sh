@@ -45,11 +45,14 @@ cat > "$APP_BUNDLE/Contents/Info.plist" << EOF
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>LSUIElement</key>
-    <true/> <!-- Make it a background/menu bar app so no dock icon -->
+    <true/>
     <key>NSScreenCaptureUsageDescription</key>
     <string>This app needs screen capture access to record the screen.</string>
 </dict>
 </plist>
 EOF
+
+echo "Code signing app bundle..."
+codesign --force --deep --sign - "$APP_BUNDLE"
 
 echo "App Bundle created at $APP_BUNDLE"
