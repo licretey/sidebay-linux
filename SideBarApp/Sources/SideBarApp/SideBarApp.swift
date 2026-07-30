@@ -4,6 +4,10 @@ import Combine
 import IOKit
 import ServiceManagement
 
+let stockTimer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
+let countdownTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+let stopwatchTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
 // MARK: - Models
 
 func t(_ key: String, _ lang: String) -> String {
@@ -526,8 +530,7 @@ struct StockView: View {
     @State private var inputSymbol = ""
     
     @AppStorage("language") private var lang = "zh"
-    let timer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
-    
+        
     init(moduleId: UUID, initialSymbol: String) {
         self.moduleId = moduleId
         _symbol = State(initialValue: initialSymbol)
@@ -635,7 +638,7 @@ struct StockView: View {
             isEditing = true
         }
         .onAppear { fetchStock() }
-        .onReceive(timer) { _ in if !isEditing { fetchStock() } }
+        .onReceive(stockTimer) { _ in if !isEditing { fetchStock() } }
     }
 }
 
@@ -644,8 +647,7 @@ struct CountdownView: View {
     @State private var isActive = false
     @State private var isEditing = false
     @State private var inputMinutes = ""
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-    @AppStorage("language") private var lang = "zh"
+        @AppStorage("language") private var lang = "zh"
     
     var timeString: String {
         let minutes = timeRemaining / 60
@@ -706,7 +708,7 @@ struct CountdownView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onReceive(timer) { _ in
+        .onReceive(countdownTimer) { _ in
             if isActive && timeRemaining > 0 {
                 timeRemaining -= 1
             } else if isActive && timeRemaining == 0 {
@@ -721,8 +723,7 @@ struct StopwatchView: View {
     @State private var timeElapsed: Int = 0
     @State private var isActive = false
     @AppStorage("language") private var lang = "zh"
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-    
+        
     var timeString: String {
         let minutes = timeElapsed / 60
         let seconds = timeElapsed % 60
@@ -761,7 +762,7 @@ struct StopwatchView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onReceive(timer) { _ in
+        .onReceive(stopwatchTimer) { _ in
             if isActive { timeElapsed += 1 }
         }
     }
