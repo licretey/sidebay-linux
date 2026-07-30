@@ -448,10 +448,11 @@ struct UsageView: View {
 struct NetworkSpeedView: View {
     let up: Double
     let down: Double
+    @AppStorage("language") private var lang = "zh"
     
     var body: some View {
         VStack(spacing: 8) {
-            Text("NET")
+            Text(t("Network", lang))
                 .font(.system(size: 11, weight: .bold, design: .rounded))
                 .foregroundColor(.secondary)
             VStack(alignment: .leading, spacing: 6) {
@@ -485,10 +486,11 @@ struct NetworkSpeedView: View {
 struct FanSpeedView: View {
     let speed: Int
     @State private var rotation: Double = 0
+    @AppStorage("language") private var lang = "zh"
     
     var body: some View {
         VStack {
-            Text("FAN")
+            Text(t("Fan", lang))
                 .font(.system(size: 11, weight: .bold, design: .rounded))
                 .foregroundColor(.secondary)
             Spacer()
@@ -593,8 +595,8 @@ struct StockView: View {
                 Spacer()
             } else {
                 Text(stockName == "加载中..." ? t("Loading...", lang) : (stockName == "无效代码" ? t("Invalid Code", lang) : stockName))
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.primary)
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                 Spacer()
@@ -643,8 +645,8 @@ struct CountdownView: View {
     var body: some View {
         VStack(spacing: 8) {
             Text(t("Countdown", lang))
-                .font(.headline)
-                .foregroundColor(.primary)
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundColor(.secondary)
             
             if isEditing {
                 TextField(t("Min", lang), text: $inputMinutes)
@@ -719,7 +721,8 @@ struct StopwatchView: View {
     var body: some View {
         VStack(spacing: 8) {
             Text(t("Stopwatch", lang))
-                .font(.headline)
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundColor(.secondary)
             Text(timeString)
                 .font(.system(.title2, design: .monospaced))
                 .fontWeight(.bold)
@@ -754,9 +757,10 @@ struct StopwatchView: View {
 }
 
 struct ScreenRecordView: View {
+    @AppStorage("language") private var lang = "zh"
     var body: some View {
         VStack {
-            Text("REC")
+            Text(t("Screen Record", lang))
                 .font(.system(size: 11, weight: .bold, design: .rounded))
                 .foregroundColor(.secondary)
             Spacer()
