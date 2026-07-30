@@ -595,13 +595,13 @@ struct StockView: View {
                 Spacer()
             } else {
                 Text(stockName == "加载中..." ? t("Loading...", lang) : (stockName == "无效代码" ? t("Invalid Code", lang) : stockName))
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                 Spacer()
                 Text(price)
-                    .font(.system(size: 16, weight: .heavy, design: .rounded))
+                    .font(.system(size: 18, weight: .heavy, design: .rounded))
                     .foregroundColor(isUp ? .red : .green)
                     .shadow(color: (isUp ? Color.red : Color.green).opacity(0.2), radius: 2, x: 0, y: 1)
                 if !change.isEmpty {
