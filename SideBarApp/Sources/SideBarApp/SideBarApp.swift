@@ -301,6 +301,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
     
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        openSettings()
+        return true
+    }
+    
     func openSettings() {
         settingsWindow.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
