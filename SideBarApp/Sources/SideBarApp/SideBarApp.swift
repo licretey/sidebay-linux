@@ -410,8 +410,8 @@ struct UsageView: View {
     var body: some View {
         VStack {
             Text(title)
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundColor(.secondary)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundColor(.primary.opacity(0.85))
             Spacer()
             ZStack {
                 Circle()
@@ -453,8 +453,8 @@ struct NetworkSpeedView: View {
     var body: some View {
         VStack(spacing: 8) {
             Text(t("Network", lang))
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundColor(.secondary)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundColor(.primary.opacity(0.85))
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Image(systemName: "arrow.up.forward.circle.fill")
@@ -491,8 +491,8 @@ struct FanSpeedView: View {
     var body: some View {
         VStack {
             Text(t("Fan", lang))
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundColor(.secondary)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundColor(.primary.opacity(0.85))
             Spacer()
             Image(systemName: "fanblades.fill")
                 .font(.system(size: 26))
@@ -595,8 +595,8 @@ struct StockView: View {
                 Spacer()
             } else {
                 Text(stockName == "加载中..." ? t("Loading...", lang) : (stockName == "无效代码" ? t("Invalid Code", lang) : stockName))
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary.opacity(0.85))
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                 Spacer()
@@ -645,8 +645,8 @@ struct CountdownView: View {
     var body: some View {
         VStack(spacing: 8) {
             Text(t("Countdown", lang))
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundColor(.secondary)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundColor(.primary.opacity(0.85))
             
             if isEditing {
                 TextField(t("Min", lang), text: $inputMinutes)
@@ -721,8 +721,8 @@ struct StopwatchView: View {
     var body: some View {
         VStack(spacing: 8) {
             Text(t("Stopwatch", lang))
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundColor(.secondary)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundColor(.primary.opacity(0.85))
             Text(timeString)
                 .font(.system(.title2, design: .monospaced))
                 .fontWeight(.bold)
@@ -761,8 +761,8 @@ struct ScreenRecordView: View {
     var body: some View {
         VStack {
             Text(t("Screen Record", lang))
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundColor(.secondary)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundColor(.primary.opacity(0.85))
             Spacer()
             Button(action: {
                 let task = Process()
@@ -1051,8 +1051,8 @@ struct KeyboardMonitorView: View {
     var body: some View {
         VStack {
             Text(t("KEYS", lang))
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundColor(.secondary)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundColor(.primary.opacity(0.85))
             Spacer()
             
             Text(listener.currentKeys.isEmpty ? " " : listener.currentKeys)
