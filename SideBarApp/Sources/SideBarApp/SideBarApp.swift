@@ -5,6 +5,39 @@ import IOKit
 import ServiceManagement
 
 // MARK: - Models
+
+func t(_ key: String, _ lang: String) -> String {
+    let dict: [String: [String: String]] = [
+        "Settings": ["en": "Settings", "zh": "侧边栏模块管理"],
+        "CPU": ["en": "CPU", "zh": "CPU"],
+        "GPU": ["en": "GPU", "zh": "GPU"],
+        "Memory": ["en": "RAM", "zh": "内存"],
+        "Disk": ["en": "Disk", "zh": "磁盘"],
+        "Fan": ["en": "Fan", "zh": "风扇"],
+        "Network": ["en": "Network", "zh": "网络"],
+        "Stock": ["en": "Stock", "zh": "股票"],
+        "Countdown": ["en": "Countdown", "zh": "倒计时"],
+        "Stopwatch": ["en": "Stopwatch", "zh": "秒表"],
+        "Screen Record": ["en": "Screen Record", "zh": "录屏"],
+        "Calculator": ["en": "Calculator", "zh": "计算器"],
+        "Keyboard": ["en": "Keyboard", "zh": "键盘监视"],
+        "Not Set": ["en": "Not Set", "zh": "未设置"],
+        "Add Module": ["en": "Add Module", "zh": "新增模块"],
+        "Add": ["en": "Add", "zh": "添加"],
+        "Launch at Login": ["en": "Launch at Login", "zh": "随系统启动"],
+        "Hint": ["en": "Hint: Drag to reorder, click trash to delete.", "zh": "提示：按住行可以拖拽排序，点击右侧垃圾桶图标即可删除。"],
+        "Language": ["en": "Language", "zh": "语言"],
+        "Min": ["en": "Min", "zh": "分"],
+        "KEYS": ["en": "KEYS", "zh": "按键"],
+        "Loading...": ["en": "Loading...", "zh": "加载中..."],
+        "Invalid Code": ["en": "Invalid Code", "zh": "无效代码"],
+        "Waiting...": ["en": "Waiting...", "zh": "等待输入..."],
+        "No Accessibility": ["en": "No Accessibility", "zh": "无辅助功能权限"],
+        "SettingsTitle": ["en": "Settings", "zh": "后台设置"]
+    ]
+    return dict[key]?[lang] ?? key
+}
+
 enum ModuleType: String, CaseIterable, Codable, Identifiable {
     case cpu = "CPU"
     case gpu = "GPU"
@@ -78,20 +111,21 @@ struct SettingsView: View {
     @EnvironmentObject private var store: ModuleStore
     @State private var selectedModuleType: ModuleType = .cpu
     @AppStorage("launchAtLogin") private var launchAtLogin = false
+    @AppStorage("language") private var lang = "zh"
     
     var body: some View {
         VStack {
-            Text("侧边栏模块管理")
+            Text(t("Settings", lang))
                 .font(.title2)
                 .padding()
             
             List {
                 ForEach(store.modules) { module in
                     HStack {
-                        Text(module.type.rawValue)
+                        Text(t(module.type.rawValue, lang))
                         Spacer()
                         if module.type == .stock {
-                            Text(module.customData.isEmpty ? "未设置" : module.customData)
+                            Text(module.customData.isEmpty ? t("Not Set", lang) : module.customData)
                                 .foregroundColor(.secondary)
                         }
                         Button(action: {
@@ -115,8 +149,19 @@ struct SettingsView: View {
                 }
             }
             .frame(minHeight: 250)
+            HStack {
+                Picker(t("Language", lang), selection: $lang) {
+                    Text("中文").tag("zh")
+                    Text("English").tag("en")
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .frame(width: 250)
+            }
+            .padding(.horizontal)
+            .padding(.top, 4)
+
             
-            Toggle("随系统启动 (Launch at Login)", isOn: $launchAtLogin)
+            Toggle(t("Launch at Login", lang), isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { newValue in
                     do {
                         if newValue {
@@ -133,21 +178,21 @@ struct SettingsView: View {
                 .padding(.vertical, 4)
             
             HStack {
-                Picker("新增模块", selection: $selectedModuleType) {
+                Picker(t("Add Module", lang), selection: $selectedModuleType) {
                     ForEach(ModuleType.allCases) { type in
-                        Text(type.rawValue).tag(type)
+                        Text(t(type.rawValue, lang)).tag(type)
                     }
                 }
                 .frame(width: 150)
                 
-                Button("添加") {
+                Button(t("Add", lang)) {
                     let custom = selectedModuleType == .stock ? "sh000001" : ""
                     store.modules.append(AppModule(type: selectedModuleType, customData: custom))
                 }
             }
             .padding()
             
-            Text("提示：按住行可以拖拽排序，点击右侧垃圾桶图标即可删除。")
+            Text(t("Hint", lang))
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding(.bottom, 8)
@@ -187,7 +232,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "后台设置"
+        window.title = UserDefaults.standard.string(forKey: "language") == "en" ? "Settings" : "后台设置"
         window.center()
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView: SettingsView().environmentObject(moduleStore))
@@ -260,6 +305,7 @@ struct MainSidebarView: View {
     @AppStorage("bgOpacity") var bgOpacity: Double = 1.0
     @State private var window: NSWindow?
     @State private var initialWidth: CGFloat = 0
+    @AppStorage("language") private var lang = "zh"
     
     var body: some View {
         VStack(spacing: 0) {
@@ -328,13 +374,13 @@ struct MainSidebarView: View {
     private func moduleView(for module: AppModule) -> some View {
         switch module.type {
         case .cpu:
-            UsageView(title: "CPU", usage: monitor.cpuUsage, color: .blue)
+            UsageView(title: t("CPU", lang), usage: monitor.cpuUsage, color: .blue)
         case .gpu:
-            UsageView(title: "GPU", usage: monitor.gpuUsage, color: .purple)
+            UsageView(title: t("GPU", lang), usage: monitor.gpuUsage, color: .purple)
         case .memory:
-            UsageView(title: "RAM", usage: monitor.memoryUsage, color: .orange)
+            UsageView(title: t("Memory", lang), usage: monitor.memoryUsage, color: .orange)
         case .disk:
-            UsageView(title: "DISK", usage: monitor.diskUsagePercent, color: .brown)
+            UsageView(title: t("Disk", lang), usage: monitor.diskUsagePercent, color: .brown)
         case .fan:
             FanSpeedView(speed: monitor.fanSpeed)
         case .network:
@@ -477,6 +523,7 @@ struct StockView: View {
     @State private var isEditing = false
     @State private var inputSymbol = ""
     
+    @AppStorage("language") private var lang = "zh"
     let timer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
     
     init(moduleId: UUID, initialSymbol: String) {
@@ -521,7 +568,7 @@ struct StockView: View {
                 }
             } else {
                 DispatchQueue.main.async {
-                    self.stockName = "无效代码"
+                    self.stockName = t("Invalid Code", lang)
                     self.price = "-"
                     self.change = ""
                 }
@@ -545,7 +592,7 @@ struct StockView: View {
                     }
                 Spacer()
             } else {
-                Text(stockName)
+                Text(stockName == "加载中..." ? t("Loading...", lang) : (stockName == "无效代码" ? t("Invalid Code", lang) : stockName))
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(.primary)
                     .lineLimit(1)
@@ -585,6 +632,7 @@ struct CountdownView: View {
     @State private var isEditing = false
     @State private var inputMinutes = ""
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @AppStorage("language") private var lang = "zh"
     
     var timeString: String {
         let minutes = timeRemaining / 60
@@ -594,12 +642,12 @@ struct CountdownView: View {
     
     var body: some View {
         VStack(spacing: 8) {
-            Text("倒计时")
+            Text(t("Countdown", lang))
                 .font(.headline)
                 .foregroundColor(.primary)
             
             if isEditing {
-                TextField("分", text: $inputMinutes)
+                TextField(t("Min", lang), text: $inputMinutes)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .frame(width: 65)
                     .onSubmit {
@@ -659,6 +707,7 @@ struct CountdownView: View {
 struct StopwatchView: View {
     @State private var timeElapsed: Int = 0
     @State private var isActive = false
+    @AppStorage("language") private var lang = "zh"
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     var timeString: String {
@@ -669,7 +718,7 @@ struct StopwatchView: View {
     
     var body: some View {
         VStack(spacing: 8) {
-            Text("秒表")
+            Text(t("Stopwatch", lang))
                 .font(.headline)
             Text(timeString)
                 .font(.system(.title2, design: .monospaced))
@@ -845,7 +894,7 @@ struct CalculatorView: View {
 }
 
 class KeyboardListener: ObservableObject {
-    @Published var currentKeys: String = "等待输入..."
+    @Published var currentKeys: String = "Waiting..."
     private var runLoopSource: CFRunLoopSource?
     private var eventTap: CFMachPort?
     
@@ -993,10 +1042,11 @@ class KeyboardListener: ObservableObject {
 
 struct KeyboardMonitorView: View {
     @StateObject private var listener = KeyboardListener()
+    @AppStorage("language") private var lang = "zh"
     
     var body: some View {
         VStack {
-            Text("KEYS")
+            Text(t("KEYS", lang))
                 .font(.system(size: 11, weight: .bold, design: .rounded))
                 .foregroundColor(.secondary)
             Spacer()
