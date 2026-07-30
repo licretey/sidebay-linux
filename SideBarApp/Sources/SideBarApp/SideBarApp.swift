@@ -549,8 +549,11 @@ struct StockView: View {
     }
     
     func fetchStock() {
-        guard let url = URL(string: "https://qt.gtimg.cn/q=\(symbol)") else { return }
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        let ts = Int(Date().timeIntervalSince1970)
+        guard let url = URL(string: "https://qt.gtimg.cn/q=\(symbol)&t=\(ts)") else { return }
+        var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        URLSession.shared.dataTask(with: request) { data, response, error in
             guard let data = data else { return }
             let nsEncoding = CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.GB_18030_2000.rawValue))
             guard let str = String(data: data, encoding: String.Encoding(rawValue: nsEncoding)) else { return }
