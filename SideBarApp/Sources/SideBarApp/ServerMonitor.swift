@@ -347,7 +347,7 @@ struct ServerView: View {
                             .font(.system(size: 10, weight: .bold))
                             .frame(width: 20, alignment: .leading)
                         let memPct = service.memoryTotal > 0 ? (service.memoryUsed / service.memoryTotal) * 100 : 0
-                        Text("\(formatBytes(service.memoryUsed))/\(formatBytes(service.memoryTotal)) (\(String(format: "%.1f%%", memPct)))")
+                        Text(String(format: "%.1f%%", memPct))
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                     }
                     HStack {
@@ -355,14 +355,21 @@ struct ServerView: View {
                             .font(.system(size: 10, weight: .bold))
                             .frame(width: 20, alignment: .leading)
                         let diskPct = service.diskTotal > 0 ? (service.diskUsed / service.diskTotal) * 100 : 0
-                        Text("\(formatBytes(service.diskUsed))/\(formatBytes(service.diskTotal)) (\(String(format: "%.1f%%", diskPct)))")
+                        Text(String(format: "%.1f%%", diskPct))
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                     }
                     HStack {
-                        Image(systemName: "network")
+                        Image(systemName: "arrow.up.network")
                             .font(.system(size: 10, weight: .bold))
                             .frame(width: 20, alignment: .leading)
-                        Text("↑ \(formatNet(service.netTx))/s  ↓ \(formatNet(service.netRx))/s")
+                        Text("\(formatNet(service.netTx))/s")
+                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    }
+                    HStack {
+                        Image(systemName: "arrow.down.network")
+                            .font(.system(size: 10, weight: .bold))
+                            .frame(width: 20, alignment: .leading)
+                        Text("\(formatNet(service.netRx))/s")
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                     }
                 }
