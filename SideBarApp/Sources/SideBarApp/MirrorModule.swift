@@ -21,11 +21,11 @@ struct MirrorModuleView: View {
     var body: some View {
         ZStack {
             if cameraModel.hasPermission {
-                if !isBlack {
-                    CameraPreviewView(session: cameraModel.session)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .clipped()
-                } else {
+                CameraPreviewView(session: cameraModel.session)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+                
+                if isBlack {
                     Color.black.frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             } else {
