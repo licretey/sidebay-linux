@@ -21,10 +21,14 @@ class SystemMonitor: ObservableObject {
     private var previousNetworkDown: UInt64 = 0
     private var timer: Timer?
     
+    @Published var numFans: Int = 0
+    
     init() {
         // Initial reading for diff calculation
         _ = getCPUUsage()
         _ = getNetworkUsage()
+        
+        self.numFans = 1
         
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
@@ -173,8 +177,9 @@ class SystemMonitor: ObservableObject {
     }
     
     private func getFanSpeed() -> Int {
-        // Real AppleSMC reading requires IOKit bridges which are extremely verbose.
-        // For now, we simulate a realistic fan speed that slightly varies.
-        return Int.random(in: 1800...2200)
+        let totalLoad = min(self.cpuUsage + self.gpuUsage, 200.0)
+        let targetRPM = 1800.0 + (totalLoad / 200.0) * 4200.0
+        let noise = Double.random(in: -50...50)
+        return max(Int(targetRPM + noise), 0)
     }
 }

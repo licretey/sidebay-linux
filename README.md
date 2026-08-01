@@ -7,6 +7,21 @@
 
 ---
 
+## 📸 Screenshots / 截图
+
+<p align="center">
+  <img src="screenshot_1.png" width="300" />
+  <img src="screenshot_2.png" width="300" />
+  <img src="screenshot_3.png" width="300" />
+</p>
+
+## 🆕 Recent Updates / 最新更新
+
+- **后台设置界面升级 (Settings UI Overhaul)**: 采用 macOS 原生 TabView 设计，将“通用”与“模块”设置分离，彻底解决了模块过多时显示不全的问题，并提升了整体美观度。
+- **Settings UI Overhaul**: Redesigned the backend settings with a native macOS TabView, separating "General" and "Modules" options for better visibility and a cleaner aesthetic.
+
+---
+
 ## 🇨🇳 中文说明
 
 **Sidebay** 是一款专为 macOS 设计的无边框、悬浮式、高颜值侧边栏小工具集合。它贴合在屏幕边缘，完全不占用你的 Dock 栏，并且拥有极致的半透明毛玻璃视觉体验。

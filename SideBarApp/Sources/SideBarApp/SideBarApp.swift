@@ -41,7 +41,9 @@ func t(_ key: String, _ lang: String) -> String {
         "Invalid Code": ["en": "Invalid Code", "zh": "无效代码"],
         "Waiting...": ["en": "Waiting...", "zh": "等待输入..."],
         "No Accessibility": ["en": "No Accessibility", "zh": "无辅助功能权限"],
-        "SettingsTitle": ["en": "Settings", "zh": "后台设置"]
+        "SettingsTitle": ["en": "Settings", "zh": "后台设置"],
+        "Width": ["en": "Width", "zh": "宽度"],
+        "Select Fan": ["en": "Select Fan", "zh": "选择风扇"]
     ]
     return dict[key]?[lang] ?? key
 }
@@ -124,121 +126,166 @@ struct SettingsView: View {
     @AppStorage("sidebarPosition") private var dockPosition = "left"
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage("language") private var lang = "zh"
+    @AppStorage("sidebarWidth") private var sidebarWidth: Double = 0.0
+    @AppStorage("selectedFanIndex") private var selectedFanIndex = 0
     var body: some View {
-        VStack {
-            Text(t("Settings", lang))
-                .font(.title2)
-                .padding()
-            
-            List {
-                ForEach(store.modules) { module in
+        TabView {
+            // MARK: - General Tab
+            Form {
+                Section {
+                    Picker(t("Language", lang), selection: $lang) {
+                        Text("中文").tag("zh")
+                        Text("English").tag("en")
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .padding(.vertical, 4)
+                    
+                    Picker(t("Position", lang), selection: $dockPosition) {
+                        Text(t("Left", lang)).tag("left")
+                        Text(t("Right", lang)).tag("right")
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .padding(.vertical, 4)
+                    
                     HStack {
-                        Text(t(module.type.rawValue, lang))
-                        Spacer()
-                        if module.type == .stock {
-                            Text(module.customData.isEmpty ? t("Not Set", lang) : module.customData)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        TextField("Height %", value: Binding(
-                            get: { module.heightPct ?? 0 },
-                            set: { newValue in
-                                if let idx = store.modules.firstIndex(of: module) {
-                                    store.modules[idx].heightPct = newValue > 0 ? newValue : nil
-                                }
-                            }
-                        ), format: .number)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .frame(width: 70)
-                        
-                        Button(action: {
-                            if let idx = store.modules.firstIndex(of: module) {
-                                store.modules.remove(at: idx)
-                            }
-                        }) {
-                            Image(systemName: "trash")
-                                .foregroundColor(.red)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .padding(.leading, 8)
+                        Text(t("Width", lang))
+                        Slider(value: Binding(
+                            get: { sidebarWidth > 0 ? sidebarWidth : 80.0 },
+                            set: { sidebarWidth = $0 }
+                        ), in: 40...300)
+                        Text(String(format: "%.0f", sidebarWidth > 0 ? sidebarWidth : 80.0))
+                            .frame(width: 40, alignment: .trailing)
                     }
                     .padding(.vertical, 4)
-                }
-                .onMove { indices, newOffset in
-                    store.modules.move(fromOffsets: indices, toOffset: newOffset)
-                }
-                .onDelete { indexSet in
-                    store.modules.remove(atOffsets: indexSet)
-                }
-            }
-            .frame(minHeight: 250)
-            HStack {
-                Picker(t("Language", lang), selection: $lang) {
-                    Text("中文").tag("zh")
-                    Text("English").tag("en")
-                }
-                .pickerStyle(SegmentedPickerStyle())
-                .frame(width: 250)
-            }
-            .padding(.horizontal)
-            .padding(.top, 4)
-
-            
-            HStack {
-                Text(t("Position", lang))
-                Spacer()
-                Picker("", selection: $dockPosition) {
-                    Text(t("Left", lang)).tag("left")
-                    Text(t("Right", lang)).tag("right")
-                }
-                .pickerStyle(SegmentedPickerStyle())
-                .frame(width: 150)
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 4)
-            
-            Toggle(t("Launch at Login", lang), isOn: $launchAtLogin)
-                .onChange(of: launchAtLogin) { newValue in
-                    do {
-                        if newValue {
-                            try SMAppService.mainApp.register()
-                        } else {
-                            try SMAppService.mainApp.unregister()
+                    
+                    Toggle(t("Launch at Login", lang), isOn: $launchAtLogin)
+                        .onChange(of: launchAtLogin) { newValue in
+                            do {
+                                if newValue {
+                                    try SMAppService.mainApp.register()
+                                } else {
+                                    try SMAppService.mainApp.unregister()
+                                }
+                            } catch {
+                                print("Failed to change launch at login: \(error)")
+                                launchAtLogin = SMAppService.mainApp.status == .enabled
+                            }
                         }
-                    } catch {
-                        print("Failed to change launch at login: \(error)")
-                        launchAtLogin = SMAppService.mainApp.status == .enabled
-                    }
+                        .padding(.vertical, 4)
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 4)
-            
-            HStack {
-                Picker(t("Add Module", lang), selection: $selectedModuleType) {
-                    ForEach(ModuleType.allCases) { type in
-                        Text(t(type.rawValue, lang)).tag(type)
-                    }
-                }
-                .frame(width: 150)
                 
-                Button(t("Add", lang)) {
-                    let custom = selectedModuleType == .stock ? "sh000001" : ""
-                    store.modules.append(AppModule(type: selectedModuleType, customData: custom))
+                Section {
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 8) {
+                            if let icon = NSImage(named: "AppIcon") {
+                                Image(nsImage: icon)
+                                    .resizable()
+                                    .frame(width: 64, height: 64)
+                            }
+                            Text("SideBarApp")
+                                .font(.headline)
+                            Link("Visit sunnydodo.top", destination: URL(string: "https://sunnydodo.top")!)
+                                .font(.footnote)
+                                .foregroundColor(.blue)
+                        }
+                        Spacer()
+                    }
+                    .padding(.top, 20)
                 }
             }
-            .padding()
+            .padding(20)
+            .tabItem {
+                Label(lang == "zh" ? "通用" : "General", systemImage: "gearshape")
+            }
             
-            Text(t("Hint", lang))
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .padding(.bottom, 8)
+            // MARK: - Modules Tab
+            VStack {
+                List {
+                    ForEach(store.modules) { module in
+                        HStack {
+                            Image(systemName: "line.3.horizontal")
+                                .foregroundColor(.gray)
+                            
+                            Text(t(module.type.rawValue, lang))
+                                .frame(width: 80, alignment: .leading)
+                            
+                            if module.type == .stock {
+                                TextField("Code", text: Binding(
+                                    get: { module.customData },
+                                    set: { newValue in
+                                        if let idx = store.modules.firstIndex(of: module) {
+                                            store.modules[idx].customData = newValue
+                                        }
+                                    }
+                                ))
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .frame(width: 80)
+                            } else {
+                                Spacer()
+                            }
+                            
+                            TextField("Height %", value: Binding(
+                                get: { module.heightPct ?? 0 },
+                                set: { newValue in
+                                    if let idx = store.modules.firstIndex(of: module) {
+                                        store.modules[idx].heightPct = newValue > 0 ? newValue : nil
+                                    }
+                                }
+                            ), format: .number)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .frame(width: 70)
+                            
+                            Button(action: {
+                                if let idx = store.modules.firstIndex(of: module) {
+                                    withAnimation {
+                                        store.modules.remove(at: idx)
+                                    }
+                                }
+                            }) {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .padding(.leading, 8)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .onMove { indices, newOffset in
+                        store.modules.move(fromOffsets: indices, toOffset: newOffset)
+                    }
+                    .onDelete { indexSet in
+                        store.modules.remove(atOffsets: indexSet)
+                    }
+                }
                 
-            Link("Visit sunnydodo.top", destination: URL(string: "https://sunnydodo.top")!)
-                .font(.footnote)
-                .foregroundColor(.blue)
-                .padding(.bottom)
+                HStack {
+                    Picker("", selection: $selectedModuleType) {
+                        ForEach(ModuleType.allCases) { type in
+                            Text(t(type.rawValue, lang)).tag(type)
+                        }
+                    }
+                    .frame(width: 150)
+                    .labelsHidden()
+                    
+                    Button(t("Add", lang)) {
+                        let custom = selectedModuleType == .stock ? "sh000001" : ""
+                        store.modules.append(AppModule(type: selectedModuleType, customData: custom))
+                    }
+                }
+                .padding(.top, 8)
+                
+                Text(t("Hint", lang))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 4)
+            }
+            .padding(20)
+            .tabItem {
+                Label(lang == "zh" ? "模块" : "Modules", systemImage: "square.grid.2x2")
+            }
         }
-        .frame(width: 400, height: 530)
+        .frame(width: 480, height: 420)
         .onAppear {
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
@@ -427,20 +474,11 @@ struct MainSidebarView: View {
             Divider()
             
             // Bottom controls
-            HStack {
-                Slider(value: $bgOpacity, in: 0...1)
-                    .help("调节背景透明度")
-                
-                Button(action: {
-                    AppDelegate.shared.openSettings()
-                }) {
-                    Image(systemName: "gearshape.fill")
-                        .foregroundColor(.primary)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            Slider(value: $bgOpacity, in: 0.1...1)
+                .help("调节背景透明度")
+                .accentColor(Color.white.opacity(0.6))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
@@ -469,34 +507,14 @@ struct MainSidebarView: View {
             )
         )
         .shadow(color: Color.black.opacity(0.4), radius: 15, x: 0, y: 10)
-        .overlay(
-            HStack {
-                Spacer()
-                Rectangle()
-                    .fill(Color.white.opacity(0.001))
-                    .frame(width: 8)
-                    .onHover { isHovering in
-                        if isHovering { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
-                    }
-                    .gesture(
-                        DragGesture()
-                            .onChanged { value in
-                                guard let win = AppDelegate.shared.panel else { return }
-                                if initialWidth == 0 { initialWidth = win.frame.width }
-                                let newWidth = max(50, initialWidth + value.translation.width)
-                                var frame = win.frame
-                                frame.size.width = newWidth
-                                win.setFrame(frame, display: true)
-                            }
-                            .onEnded { _ in
-                                initialWidth = 0
-                                if let win = AppDelegate.shared.panel {
-                                    UserDefaults.standard.set(win.frame.width, forKey: "sidebarWidth")
-                                }
-                            }
-                    )
+        .contextMenu {
+            Button(action: {
+                AppDelegate.shared.openSettings()
+            }) {
+                Text(t("SettingsTitle", lang))
+                Image(systemName: "gearshape")
             }
-        )
+        }
         }
     }
     
@@ -621,7 +639,6 @@ struct NetworkSpeedView: View {
 
 struct FanSpeedView: View {
     let speed: Int
-    @State private var rotation: Double = 0
     @AppStorage("language") private var lang = "zh"
     @AppStorage("sidebarPosition") private var dockPosition = "left"
     
@@ -631,17 +648,19 @@ struct FanSpeedView: View {
                 .font(.system(size: 13, weight: .bold, design: .rounded))
                 .foregroundColor(.primary.opacity(0.85))
             Spacer()
-            Image(systemName: "fanblades.fill")
-                .font(.system(size: 26))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundColor(.teal)
-                .shadow(color: .teal.opacity(0.5), radius: 4, x: 0, y: 0)
-                .rotationEffect(.degrees(rotation))
-                .onAppear {
-                    withAnimation(.linear(duration: 0.5).repeatForever(autoreverses: false)) {
-                        rotation = 360
-                    }
-                }
+            TimelineView(.animation) { context in
+                let time = context.date.timeIntervalSinceReferenceDate
+                // 1000 RPM -> 2 seconds per rotation (180 degrees/sec)
+                // 2000 RPM -> 1 second per rotation (360 degrees/sec)
+                // Formula: degrees_per_sec = speed * (360.0 / 2000.0) = speed * 0.18
+                let degrees = time * Double(max(speed, 0)) * 0.18
+                Image(systemName: "fanblades.fill")
+                    .font(.system(size: 26))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundColor(.teal)
+                    .shadow(color: .teal.opacity(0.5), radius: 4, x: 0, y: 0)
+                    .rotationEffect(.degrees(degrees))
+            }
             Spacer()
             Text("\(speed) RPM")
                 .font(.system(size: 10, weight: .semibold, design: .monospaced))
