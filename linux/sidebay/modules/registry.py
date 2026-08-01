@@ -22,4 +22,11 @@ def create_module(type_: str, store, module_id: str, monitor) -> Module:
         return CalculatorModule(store, module_id)
     if type_ == "Stock":
         return StockModule(store, module_id)
+    from sidebay.modules.countdown import CountdownModule
+    from sidebay.modules.stopwatch import StopwatchModule
+
+    if type_ == "Countdown":
+        return CountdownModule(store, module_id)
+    if type_ == "Stopwatch":
+        return StopwatchModule(store, module_id)
     raise ValueError(f"module type not wired yet: {type_}")
