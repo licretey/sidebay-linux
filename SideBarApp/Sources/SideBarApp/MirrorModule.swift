@@ -89,6 +89,13 @@ struct MirrorModuleView: View {
     }
 
     private func openStandaloneWindow() {
+        // Try to find if one already exists
+        if let existing = NSApp.windows.first(where: { $0.title == "Mirror" }) {
+            existing.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
             styleMask: [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView],
@@ -96,6 +103,8 @@ struct MirrorModuleView: View {
         )
         window.title = "Mirror"
         window.center()
+        window.isReleasedWhenClosed = false // Prevent deallocation on close
+        window.delegate = sharedMirrorWindowDelegate
         
         let standaloneView = CameraPreviewView(session: cameraModel.session)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -142,6 +151,16 @@ struct MirrorConfigView: View {
         }
     }
 }
+
+
+class MirrorWindowDelegate: NSObject, NSWindowDelegate {
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        sender.orderOut(nil)
+        return false
+    }
+}
+
+let sharedMirrorWindowDelegate = MirrorWindowDelegate()
 
 class CameraViewModel: ObservableObject {
     @Published var hasPermission = false
