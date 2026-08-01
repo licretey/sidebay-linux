@@ -60,6 +60,7 @@ enum ModuleType: String, CaseIterable, Codable, Identifiable {
     case calculator = "Calculator"
     case keyboard = "Keyboard"
     case server = "Server"
+    case mirror = "Mirror"
     
     var id: String { self.rawValue }
 }
@@ -68,6 +69,7 @@ struct AppModule: Identifiable, Codable, Equatable {
     var id: UUID = UUID()
     var type: ModuleType
     var customData: String = "" // e.g., stock symbol
+    var heightPct: Double?
 }
 
 class ModuleStore: ObservableObject {
@@ -137,6 +139,18 @@ struct SettingsView: View {
                             Text(module.customData.isEmpty ? t("Not Set", lang) : module.customData)
                                 .foregroundColor(.secondary)
                         }
+                        
+                        TextField("Height %", value: Binding(
+                            get: { module.heightPct ?? 0 },
+                            set: { newValue in
+                                if let idx = store.modules.firstIndex(of: module) {
+                                    store.modules[idx].heightPct = newValue > 0 ? newValue : nil
+                                }
+                            }
+                        ), format: .number)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .frame(width: 70)
+                        
                         Button(action: {
                             if let idx = store.modules.firstIndex(of: module) {
                                 store.modules.remove(at: idx)
@@ -393,16 +407,22 @@ struct MainSidebarView: View {
         let corners = sideCorners
         let shape = CustomRoundedCorner(radius: 24, corners: corners)
         
-        return VStack(spacing: 0) {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-                    ForEach(store.modules) { module in
-                        Divider()
-                        moduleView(for: module)
-                            .frame(height: 100)
+        return GeometryReader { geometry in
+            VStack(spacing: 0) {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        ForEach(store.modules) { module in
+                            Divider()
+                            if let heightPct = module.heightPct, heightPct > 0 {
+                                moduleView(for: module)
+                                    .frame(height: geometry.size.height * (heightPct / 100.0))
+                            } else {
+                                moduleView(for: module)
+                                    .frame(height: 100)
+                            }
+                        }
                     }
                 }
-            }
             
             Divider()
             
@@ -477,6 +497,7 @@ struct MainSidebarView: View {
                     )
             }
         )
+        }
     }
     
 
@@ -509,6 +530,8 @@ struct MainSidebarView: View {
             KeyboardMonitorView()
         case .server:
             ServerView(moduleId: module.id, configData: module.customData)
+        case .mirror:
+            MirrorModuleView(moduleId: module.id, customData: module.customData)
         }
     }
 }

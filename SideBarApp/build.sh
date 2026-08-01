@@ -48,6 +48,8 @@ cat > "$APP_BUNDLE/Contents/Info.plist" << EOF
     <true/>
     <key>NSScreenCaptureUsageDescription</key>
     <string>This app needs screen capture access to record the screen.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>This app needs camera access for the mirror module.</string>
 </dict>
 </plist>
 EOF
