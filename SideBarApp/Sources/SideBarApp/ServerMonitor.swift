@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 
 struct ServerConfig: Codable, Equatable {
+    var name: String? = ""
     var ip: String = ""
     var port: String = "22"
     var username: String = "root"
@@ -139,6 +140,8 @@ class ServerMonitorService: ObservableObject {
             task.launchPath = "/usr/bin/ssh"
             task.arguments = [
                 "-S", self.socketPath,
+                "-o", "BatchMode=yes",
+                "-o", "ConnectTimeout=3",
                 "\(self.config.username)@\(self.config.ip)",
                 "cat /proc/stat && echo '---' && cat /proc/meminfo && echo '---' && df -k / && echo '---' && cat /proc/net/dev"
             ]
@@ -222,18 +225,31 @@ class ServerMonitorService: ObservableObject {
                 else if cols[0] == "Cached:" { memCached = val }
             }
         }
+        var memAvailable: Double = -1
+        for line in memStr.components(separatedBy: .newlines) {
+            let cols = line.split(separator: " ", omittingEmptySubsequences: true)
+            if cols.count >= 2 {
+                let val = Double(cols[1]) ?? 0
+                if cols[0] == "MemAvailable:" { memAvailable = val }
+            }
+        }
         if memTotal > 0 {
             newMemTotal = memTotal * 1024 // Bytes
-            newMemUsed = (memTotal - memFree - memBuffers - memCached) * 1024
+            let available = memAvailable >= 0 ? memAvailable : (memFree + memBuffers + memCached)
+            newMemUsed = (memTotal - available) * 1024
         }
         
         // Parse Disk
-        let dfLines = dfStr.components(separatedBy: .newlines)
+        let dfLines = dfStr.components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
         if dfLines.count >= 2 {
-            // first line is header, second line is /
-            let cols = dfLines[1].split(separator: " ", omittingEmptySubsequences: true)
+            // Usually the last line is the data for /
+            let lastLine = dfLines.last!
+            let cols = lastLine.split(separator: " ", omittingEmptySubsequences: true)
+            // Filesystem 1K-blocks Used Available Use% Mounted
             if cols.count >= 4 {
-                if let total = Double(cols[1]), let used = Double(cols[2]) {
+                let totalStr = cols[cols.count - 5]
+                let usedStr = cols[cols.count - 4]
+                if let total = Double(totalStr), let used = Double(usedStr) {
                     newDiskTotal = total * 1024
                     newDiskUsed = used * 1024
                 }
@@ -306,7 +322,7 @@ struct ServerView: View {
     
     var body: some View {
         VStack(spacing: 6) {
-            Text(service.config.ip.isEmpty ? "Server Setup" : service.config.ip)
+            Text(service.config.ip.isEmpty ? "Server Setup" : (service.config.name?.isEmpty == false ? service.config.name! : service.config.ip))
                 .font(.system(size: 13, weight: .bold, design: .rounded))
                 .foregroundColor(.primary.opacity(0.85))
             
@@ -319,39 +335,36 @@ struct ServerView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             } else {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text("CPU:")
-                                .font(.system(size: 10))
-                                .frame(width: 30, alignment: .leading)
-                            Text(String(format: "%.1f%%", service.cpuUsage))
-                                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        }
-                        HStack {
-                            Text("MEM:")
-                                .font(.system(size: 10))
-                                .frame(width: 30, alignment: .leading)
-                            Text("\(formatBytes(service.memoryUsed))/\(formatBytes(service.memoryTotal))")
-                                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        }
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("CPU:")
+                            .font(.system(size: 10, weight: .bold))
+                            .frame(width: 35, alignment: .leading)
+                        Text(String(format: "%.1f%%", service.cpuUsage))
+                            .font(.system(size: 11, weight: .medium, design: .monospaced))
                     }
-                    Spacer()
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text("DSK:")
-                                .font(.system(size: 10))
-                                .frame(width: 30, alignment: .leading)
-                            Text("\(formatBytes(service.diskUsed))/\(formatBytes(service.diskTotal))")
-                                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        }
-                        HStack {
-                            Text("NET:")
-                                .font(.system(size: 10))
-                                .frame(width: 30, alignment: .leading)
-                            Text("\(formatNet(service.netTx))↑ \(formatNet(service.netRx))↓")
-                                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        }
+                    HStack {
+                        Text("MEM:")
+                            .font(.system(size: 10, weight: .bold))
+                            .frame(width: 35, alignment: .leading)
+                        let memPct = service.memoryTotal > 0 ? (service.memoryUsed / service.memoryTotal) * 100 : 0
+                        Text("\(formatBytes(service.memoryUsed))/\(formatBytes(service.memoryTotal)) (\(String(format: "%.1f%%", memPct)))")
+                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    }
+                    HStack {
+                        Text("DSK:")
+                            .font(.system(size: 10, weight: .bold))
+                            .frame(width: 35, alignment: .leading)
+                        let diskPct = service.diskTotal > 0 ? (service.diskUsed / service.diskTotal) * 100 : 0
+                        Text("\(formatBytes(service.diskUsed))/\(formatBytes(service.diskTotal)) (\(String(format: "%.1f%%", diskPct)))")
+                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    }
+                    HStack {
+                        Text("NET:")
+                            .font(.system(size: 10, weight: .bold))
+                            .frame(width: 35, alignment: .leading)
+                        Text("↑ \(formatNet(service.netTx))/s  ↓ \(formatNet(service.netRx))/s")
+                            .font(.system(size: 11, weight: .medium, design: .monospaced))
                     }
                 }
                 .padding(.horizontal, 4)
@@ -410,6 +423,7 @@ struct ServerConfigView: View {
                 .font(.headline)
             
             Form {
+                TextField("Server Name", text: Binding(get: { config.name ?? "" }, set: { config.name = $0 }))
                 TextField("IP Address", text: $config.ip)
                 TextField("Port", text: $config.port)
                 TextField("Username", text: $config.username)
