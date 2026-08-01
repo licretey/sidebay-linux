@@ -127,3 +127,56 @@ def test_keyboard_capture_xrecord(tmp_path):
             pytest.skip("X 服务器未投递 XTest 合成按键")
     finally:
         widget.run_dispose()
+
+
+@pytest.mark.smoke
+def test_opacity_slider_updates_window_and_persists(tmp_path):
+    """透明度滑块 → 窗口透明度 + 立即持久化（验收项：透明度滑块生效）。"""
+    import json
+
+    app = SidebayApplication(store=Store(path=str(tmp_path / "c.json")))
+    win = app.create_window()
+    win._opacity.set_value(0.5)
+    # GTK 内部以 0-255 存透明度，0.5 → 128/255，容差取 0.01
+    assert abs(win.get_opacity() - 0.5) < 0.01
+    assert app.store.settings.opacity == 0.5
+    data = json.loads((tmp_path / "c.json").read_text())
+    assert data["settings"]["opacity"] == 0.5
+    win.destroy()
+
+
+@pytest.mark.smoke
+def test_stock_module_apply_quote_sets_color_class(tmp_path):
+    """GTK 4 无 override_color：涨跌色必须走 CSS 类（style.css .sb-stock-up/down）。"""
+    from sidebay.modules.stock import StockModule, StockQuote
+
+    store = Store(path=str(tmp_path / "c.json"))
+    module = StockModule(store, "stock-test")
+    widget = module.build()
+    try:
+        module._apply_quote(StockQuote(name="X", price="1.00", change_pct="+1%", is_up=True))
+        assert "sb-stock-up" in module._price.get_css_classes()
+        assert "sb-stock-down" not in module._price.get_css_classes()
+        module._apply_quote(StockQuote(name="X", price="1.00", change_pct="-1%", is_up=False))
+        assert "sb-stock-down" in module._price.get_css_classes()
+        assert "sb-stock-up" not in module._price.get_css_classes()
+    finally:
+        widget.run_dispose()
+
+
+@pytest.mark.smoke
+def test_all_module_types_build(tmp_path):
+    from sidebay.modules.registry import MODULE_TYPES, create_module
+    from sidebay.store import Store
+
+    store = Store(path=str(tmp_path / "c.json"))
+    widgets = []
+    try:
+        for type_ in MODULE_TYPES:
+            module = create_module(type_, store, f"id-{type_}", monitor=None)
+            widget = module.build()
+            widgets.append(widget)
+            assert widget is not None
+    finally:
+        for w in widgets:
+            w.run_dispose()  # GTK 4.22 无 gtk_widget_destroy，用 run_dispose 触发 destroy 信号

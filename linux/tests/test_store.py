@@ -65,3 +65,18 @@ def test_corrupt_file_recovers_to_defaults(tmp_path):
     s = Store(path=str(path))
     s.load()
     assert [m.type for m in s.modules] == Store.DEFAULT_TYPES
+
+
+def test_default_config_path_honors_xdg(monkeypatch, tmp_path):
+    from sidebay.store import default_config_path
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    assert default_config_path() == tmp_path / "xdg" / "sidebay" / "config.json"
+
+
+def test_default_config_path_falls_back_to_home(monkeypatch, tmp_path):
+    from sidebay.store import default_config_path
+
+    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    assert default_config_path() == tmp_path / ".config" / "sidebay" / "config.json"

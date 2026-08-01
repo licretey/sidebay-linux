@@ -7,15 +7,12 @@ from datetime import datetime
 import gi
 
 gi.require_version("Gtk", "4.0")
-gi.require_version("Gdk", "4.0")
-from gi.repository import GLib, Gdk, Gtk
+from gi.repository import GLib, Gtk
 
 from sidebay.i18n import t
 from sidebay.modules.base import Module
 
 STOCK_URL = "https://qt.gtimg.cn/q={symbol}&t={ts}"
-UP_COLOR = (0.95, 0.30, 0.30)
-DOWN_COLOR = (0.20, 0.80, 0.40)
 
 
 @dataclass
@@ -122,6 +119,17 @@ class StockModule(Module):
         self._name.set_visible(True)
         self._poll()
 
+    def _apply_quote(self, quote: StockQuote) -> None:
+        """更新行情文本与涨跌色（GTK 4 无 override_color，走 CSS 类，可单测）。"""
+        self._name.set_text(quote.name)
+        self._price.set_text(quote.price)
+        self._change.set_text(quote.change_pct)
+        cls = "sb-stock-up" if quote.is_up else "sb-stock-down"
+        for label in (self._price, self._change):
+            label.remove_css_class("sb-stock-up")
+            label.remove_css_class("sb-stock-down")
+            label.add_css_class(cls)
+
     def _poll(self) -> bool:
         symbol, lang = self.symbol, self._lang
         url = STOCK_URL.format(symbol=symbol, ts=int(datetime.now().timestamp()))
@@ -137,14 +145,7 @@ class StockModule(Module):
         def _done(quote: StockQuote | None) -> None:
             if self._editing or quote is None:
                 return
-            self._name.set_text(quote.name)
-            self._price.set_text(quote.price)
-            self._change.set_text(quote.change_pct)
-            color = Gdk.RGBA()
-            color.parse(f"rgb({int(UP_COLOR[0]*255)}, {int(UP_COLOR[1]*255)}, {int(UP_COLOR[2]*255)})" if quote.is_up else
-                        f"rgb({int(DOWN_COLOR[0]*255)}, {int(DOWN_COLOR[1]*255)}, {int(DOWN_COLOR[2]*255)})")
-            self._price.override_color(Gtk.StateFlags.NORMAL, color)
-            self._change.override_color(Gtk.StateFlags.NORMAL, color)
+            self._apply_quote(quote)
 
         import threading
         threading.Thread(target=lambda: GLib.idle_add(_done, _fetch()), daemon=True).start()

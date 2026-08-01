@@ -1,6 +1,7 @@
 """模块与设置持久化。JSON 存储，对齐原版 UserDefaults 语义。"""
 
 import json
+import os
 import uuid
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -23,12 +24,19 @@ class Settings:
     launch_at_login: bool = False
 
 
+def default_config_path() -> Path:
+    """遵循 XDG_CONFIG_HOME（验收流程用临时 HOME/XDG 目录验证持久化）。"""
+    xdg = os.environ.get("XDG_CONFIG_HOME")
+    base = Path(xdg).expanduser() if xdg else Path.home() / ".config"
+    return base / "sidebay" / "config.json"
+
+
 class Store:
     DEFAULT_TYPES = ["CPU", "GPU", "Memory", "Disk", "Fan", "Network",
                      "Stock", "Countdown", "Stopwatch", "Screen Record"]
 
     def __init__(self, path: str | None = None):
-        self.path = Path(path or (Path.home() / ".config" / "sidebay" / "config.json"))
+        self.path = Path(path or default_config_path())
         self.modules: list[AppModule] = []
         self.settings = Settings()
         self.load()

@@ -1,5 +1,10 @@
 """Linux 系统采集：/proc 与 /sys 文件的纯函数解析 + 采样类。"""
 
+import os
+import random
+import shutil
+import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -90,12 +95,6 @@ def parse_gpu_busy(text: str) -> float:
         return 0.0
 
 
-import random
-import subprocess
-from dataclasses import dataclass, field
-from pathlib import Path
-
-
 @dataclass
 class Stats:
     cpu: float = 0.0
@@ -117,6 +116,8 @@ class SystemMonitor:
         self._prev_cpu: CpuSample | None = None
         self._prev_net: dict[str, tuple[int, int]] = {}
         self._last_net_time = 0.0
+        # nvidia-smi 存在性只探测一次：无独显的机器不必每秒 fork+exec 一次
+        self._has_nvidia_smi = shutil.which("nvidia-smi") is not None
 
     def tick(self) -> Stats:
         cpu_text = self._read(self.proc_root / "stat")
@@ -130,7 +131,7 @@ class SystemMonitor:
 
         net_text = self._read(self.proc_root / "net" / "dev")
         curr_net = parse_net_dev(net_text)
-        now = __import__("time").time()
+        now = time.time()
         dt = now - self._last_net_time if self._last_net_time else 0.0
         net_up, net_down = compute_net_speeds(self._prev_net, curr_net, dt)
         self._prev_net = curr_net
@@ -159,7 +160,7 @@ class SystemMonitor:
 
     def _read_disk(self) -> tuple[float, float]:
         try:
-            st = __import__("os").statvfs("/")
+            st = os.statvfs("/")
             total = st.f_blocks * st.f_frsize
             free = st.f_bavail * st.f_frsize
             used = total - free
@@ -180,6 +181,8 @@ class SystemMonitor:
             busy = parse_gpu_busy(self._read(dev))
             if busy > 0:
                 return busy
+        if not self._has_nvidia_smi:
+            return 0.0
         try:
             out = subprocess.run(
                 ["nvidia-smi", "--query-gpu=utilization.gpu", "--format=csv,noheader,nounits"],
