@@ -320,7 +320,7 @@ struct ServerView: View {
     }
     
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 4) {
             Text(service.config.ip.isEmpty ? "Server Setup" : (service.config.name?.isEmpty == false ? service.config.name! : service.config.ip))
                 .font(.system(size: 13, weight: .bold, design: .rounded))
                 .foregroundColor(.primary.opacity(0.85))
@@ -334,7 +334,7 @@ struct ServerView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             } else {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 2) {
                     HStack {
                         Image(systemName: "cpu")
                             .font(.system(size: 10, weight: .bold))
