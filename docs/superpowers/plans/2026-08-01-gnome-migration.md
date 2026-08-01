@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将 macOS SwiftUI 版 Sidebay 以 Python + GTK4 移植到 Linux/GNOME，保留深色玻璃质感 UI、10 个核心模块，空闲内存 <80MB，Flatpak 打包。
+**Goal:** 将 macOS SwiftUI 版 Sidebay 以 Python + GTK4 移植到 Linux/GNOME，保留深色玻璃质感 UI、10 个核心模块，空闲内存 <100MB（2026-08-02 修订，实测 93.4MB），Flatpak 打包。
 
 **Architecture:** 无装饰 `Gtk.ApplicationWindow` 贴屏边缘悬浮（X11 置顶，Wayland 常规层叠）；模块为统一接口的类，挂载到 `Gtk.ScrolledWindow`；数据层（/proc、/sys 纯函数解析）与 UI 分离；深色玻璃质感全部经 GTK CSS + cairo 自绘实现；配置存 JSON；Gtk.Application 提供单实例。
 
@@ -15,7 +15,7 @@
 - 平台：Linux / GNOME，Wayland 与 X11 均须可启动；**禁用 GNOME 原生菜单栏/headerbar**——所有窗口 `set_decorated(False)`，设置窗口自绘暗色头部
 - 视觉：深色玻璃质感，`rgba(20,22,28,0.75)` 背景 + 高光渐变 + 渐变描边 + 投影；贴边全高窗口**无圆角**
 - 模块：V1 共 10 个——CPU/GPU/Memory/Disk/Fan/Network/Stock/Countdown/Stopwatch/Calculator/Keyboard（usage 一文件四类，注册表共 11 项）
-- 内存目标：空闲 RSS < 80MB；轮询用 GLib 定时器，复用缓冲，禁止每帧分配新对象
+- 内存目标：空闲 RSS < 100MB（2026-08-02 用户裁决修订，原 80MB；实测 93.4MB）；轮询用 GLib 定时器，复用缓冲，禁止每帧分配新对象；默认 GSK_RENDERER=cairo
 - 语言：zh/en 双语，词表从原 Swift `t()` 平移（`SideBarApp/Sources/SideBarApp/SideBarApp.swift:13-49`）
 - 已知限制需在 UI/README 中体现：Wayland 无置顶；键盘监视 X11-only（失败显示「无权限」）；GPU 在 Flatpak 沙盒内回退 0；无真实背景模糊
 - 目录：新代码全部在 `linux/`，**不得修改** `SideBarApp/`（原 macOS 版）
@@ -2909,14 +2909,14 @@ sleep 5
 ps -o rss= -p $APP_PID
 kill $APP_PID
 ```
-Expected: RSS < 81920（80MB）。若超限：检查 `monitor.py` 每 tick 的分配（`__import__("time")`/`os` 顶部 import 一次；`parse_*` 无缓存问题），修正后重跑。
+Expected: RSS < 102400（100MB，2026-08-02 修订目标；实测 93.4MB 达标）。若超限：检查每 tick 分配与 GSK_RENDERER（默认 cairo），修正后重跑。
 
 - [ ] **Step 4: 验收清单核对**（对照 spec「验收标准」）
 
 - [ ] X11 会话（或 xvfb 模拟）贴边悬浮、宽度拖拽、透明度滑块生效
 - [ ] 10 模块添加/删除/拖拽排序/持久化（重启保留）
 - [ ] 无任何 GNOME 原生菜单栏/headerbar（设置窗口为自绘头部）
-- [ ] 空闲 RSS < 80MB
+- [ ] 空闲 RSS < 100MB（修订后目标；实测 93.4MB 达标）
 - [ ] pytest 全绿
 - [ ] Flatpak 构建安装成功，Wayland 会话启动无 traceback
 
@@ -2937,7 +2937,7 @@ git commit -m "test(linux): full module smoke and acceptance"
 - 贴边/拖宽/透明度/右键 → Task 6、12 ✓
 - 采集映射 → Task 3、4 ✓
 - Flatpak → Task 13 ✓
-- 内存 <80MB → Task 14 ✓
+- 内存 <100MB（修订）→ Task 14 ✓（实测 93.4MB，含 GSK_RENDERER=cairo 降级说明）
 - 已知限制 → Task 11（键盘）、13（README）、14（验收）✓
 - 语言切换 → Task 12 通用页 ✓
 

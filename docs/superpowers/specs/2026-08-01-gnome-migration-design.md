@@ -14,7 +14,7 @@ Sidebay 原为 macOS 原生 SwiftUI/AppKit 应用（约 2,240 行，4 个文件�
 
 | 决策点 | 结论 |
 |---|---|
-| 语言 | Python + GTK4（开发快、内存较低 ~50-80MB、GNOME 原生渲染） |
+| 语言 | Python + GTK4（开发快、内存较低 ~90-100MB、GNOME 原生渲染） |
 | V1 模块范围 | 10 个核心模块：CPU/GPU/RAM/Disk 环形仪表、网络、风扇、股票、倒计时、秒表、计算器、键盘监视 |
 | 延后模块 | Mirror（摄像头预览）与 Screen Record（录屏）— V2 用 GStreamer/Pipewire 实现 |
 | 键盘监视 | 尽力而为：X11 会话全局监听；Wayland 显示「无权限」提示 |
@@ -69,9 +69,9 @@ class Module:
 - 轮询走 GLib 定时器（`GLib.timeout_add`），单线程主循环，复用缓冲对象避免每帧分配
 - 数据层（monitor.py）与 UI 层分离：monitor 纯函数式采集，UI 订阅
 
-### 内存策略（目标：空闲 <80MB RSS）
+### 内存策略（目标：空闲 <100MB RSS — 2026-08-02 由用户裁决修订，实测 93.4MB）
 
-- GTK4 + pygobject 基线 ~50-60MB
+- GTK4 + pygobject 基线 ~60-70MB；默认 `GSK_RENDERER=cairo` 规避 GL 渲染栈（llvmpipe/NVIDIA 下可达 268MB）
 - 无图片资源：图标用 cairo 自绘/Unicode 符号/字体 glyph
 - 轮询不创建新对象：`/proc` 读取复用 `bytearray` 缓冲与预分配字符串
 - 股票网络请求用 `urllib`（stdlib，无重依赖），仅请求模块挂载时活跃
@@ -170,6 +170,6 @@ python3 -m pytest linux/tests
 1. 侧边栏在 X11 会话下贴边置顶悬浮，行为与 macOS 版一致（贴边/宽度拖拽/透明度/右键设置）
 2. 10 个模块全部可添加、删除、拖拽排序、持久化（重启后保留）
 3. 视觉为深色玻璃质感，无任何 GNOME 原生菜单栏/headerbar
-4. 空闲内存 < 80MB RSS
+4. 空闲内存 < 100MB RSS（实测 93.4MB，60s 平稳无泄漏；修订记录见「内存策略」）
 5. pytest 逻辑覆盖 ≥80% 通过；xvfb 冒烟通过
 6. Flatpak 构建安装成功，Wayland/X11 会话均能启动
