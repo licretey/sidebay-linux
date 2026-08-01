@@ -44,54 +44,66 @@ class KeyboardModule(Module):
         """连接 XRecord；任何失败都返回 None（应用不受影响）。"""
         try:
             import os
+            import threading
 
             if "DISPLAY" not in os.environ:
                 return None
-            from Xlib import display as xdisplay
-            from Xlib import protocol
-            from Xlib.Xrecord import Xrecord
+            from Xlib import X, display as xdisplay
+            from Xlib.ext import record
+            from Xlib.protocol import rq
 
             self._xdisplay = xdisplay.Display()
 
-            def on_keys(event):
+            def on_reply(reply):
                 try:
-                    data = event.data
-                    detail = data.detail
-                    state = data.state
-                    # 键按下且过滤掉 modifier-only 事件
-                    if data.type == 2:  # KeyPress
-                        mods = set()
-                        if state & 0x0004:
-                            mods.add("Control")
-                        if state & 0x0008:
-                            mods.add("Alt")
-                        if state & 0x0001:
-                            mods.add("Shift")
-                        if state & 0x0040:
-                            mods.add("Super")
-                        keysym = self._xdisplay.keycode_to_keysym(detail, 0)
-                        symbol = self._keysym_to_str(keysym) if keysym else None
-                        text = format_keys(mods, symbol)
-                        if text:
-                            GLib.idle_add(self._show, text)
+                    if reply.category != record.FromServer or reply.client_swapped:
+                        return
+                    data = reply.data
+                    while len(data) >= 32:
+                        event, data = rq.EventField(None).parse_binary_value(
+                            data, self._xdisplay.display, None, None
+                        )
+                        if event.type == X.KeyPress:  # 键按下且过滤掉 modifier-only 事件
+                            mods = set()
+                            if event.state & 0x0004:
+                                mods.add("Control")
+                            if event.state & 0x0008:
+                                mods.add("Alt")
+                            if event.state & 0x0001:
+                                mods.add("Shift")
+                            if event.state & 0x0040:
+                                mods.add("Super")
+                            keysym = self._xdisplay.keycode_to_keysym(event.detail, 0)
+                            symbol = self._keysym_to_str(keysym) if keysym else None
+                            text = format_keys(mods, symbol)
+                            if text:
+                                GLib.idle_add(self._show, text)
                 except Exception:
                     pass  # 监听回调永不抛错
 
-            self._xrecord_ctx = Xrecord(self._xdisplay)
-            ranges = [{
-                "first": 8,
-                "last": 255,
-                "core_requests": 0,
-                "core_replies": 0,
-                "ext_requests": 0,
-                "ext_replies": 0,
-                "delivered_events": 0,
-                "device_events": 1 << 0,  # KeyPress
-                "errors": 0,
-                "client_started": 0,
-                "client_done": 0,
-            }]
-            self._xrecord_ctx.start_context(on_keys, ranges)
+            self._xrecord_ctx = self._xdisplay.record_create_context(
+                0,
+                [record.AllClients],
+                [{
+                    "core_requests": (0, 0),
+                    "core_replies": (0, 0),
+                    "ext_requests": (0, 0, 0, 0),
+                    "ext_replies": (0, 0, 0, 0),
+                    "delivered_events": (0, 0),
+                    "device_events": (X.KeyPress, X.ButtonRelease),
+                    "errors": (0, 0),
+                    "client_started": False,
+                    "client_died": False,
+                }],
+            )
+            # record_enable_context 阻塞到 EndOfData（disable/free 前不会返回），
+            # 必须在后台线程运行；回调在线程内同步触发，经 GLib.idle_add 切回主循环
+            self._record_thread = threading.Thread(
+                target=self._xdisplay.record_enable_context,
+                args=(self._xrecord_ctx, on_reply),
+                daemon=True,
+            )
+            self._record_thread.start()
             return True
         except Exception:
             return None
@@ -122,6 +134,8 @@ class KeyboardModule(Module):
     def on_destroy(self) -> None:
         try:
             if self._listener is not None and hasattr(self, "_xrecord_ctx"):
-                self._xrecord_ctx.stop_context()
+                self._xdisplay.record_disable_context(self._xrecord_ctx)
+                self._xdisplay.flush()  # 让记录线程尽快收到 EndOfData 并退出
+                self._xdisplay.record_free_context(self._xrecord_ctx)
         except Exception:
             pass
