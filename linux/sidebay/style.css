@@ -1,0 +1,58 @@
+* { font-family: "Cantarell", "Noto Sans CJK SC", sans-serif; }
+
+.sb-glass {
+  background-color: rgba(20, 22, 28, 0.75);
+  background-image: linear-gradient(90deg,
+    rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.0) 40%, rgba(0, 0, 0, 0.3));
+}
+
+.sb-module-title {
+  font-weight: bold;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.sb-tick-label {
+  font-family: monospace;
+  font-weight: medium;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.sb-btn-glass {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  min-width: 28px;
+  min-height: 28px;
+}
+.sb-btn-glass:hover { background-color: rgba(255, 255, 255, 0.22); }
+.sb-btn-glass:active { background-color: rgba(255, 255, 255, 0.08); }
+
+.sb-slider slider {
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 9999px;
+  min-width: 12px;
+  min-height: 12px;
+}
+
+.sb-calc-display {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.sb-settings-header {
+  background-color: rgba(20, 22, 28, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.sb-settings-close {
+  background-color: rgba(255, 59, 48, 0.85);
+  border-radius: 9999px;
+  min-width: 12px;
+  min-height: 12px;
+}
+.sb-settings-close:hover { background-color: rgba(255, 59, 48, 1.0); }
+
+.sb-rounded { border-radius: 24px; }
