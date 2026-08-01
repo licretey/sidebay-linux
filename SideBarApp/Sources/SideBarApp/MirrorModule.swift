@@ -1,35 +1,128 @@
 import SwiftUI
 import AVFoundation
 
+struct MirrorConfig: Codable, Equatable {
+    var deviceId: String = ""
+}
+
 struct MirrorModuleView: View {
     let moduleId: UUID
     let customData: String
     
     @StateObject private var cameraModel = CameraViewModel()
+    @State private var showingConfig = false
+    @State private var isBlack = false
+    
+    init(moduleId: UUID, customData: String) {
+        self.moduleId = moduleId
+        self.customData = customData
+    }
     
     var body: some View {
         ZStack {
             if cameraModel.hasPermission {
-                CameraPreviewView(session: cameraModel.session)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
+                if !isBlack {
+                    CameraPreviewView(session: cameraModel.session)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .clipped()
+                } else {
+                    Color.black.frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             } else {
                 Text("No Camera Permission")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            openConfigWindow()
+        }
+        .onTapGesture(count: 1) {
+            isBlack.toggle()
+        }
         .onAppear {
+            var config = MirrorConfig()
+            if let data = customData.data(using: .utf8),
+               let decoded = try? JSONDecoder().decode(MirrorConfig.self, from: data) {
+                config = decoded
+            }
+            cameraModel.config = config
             cameraModel.checkPermission()
         }
         .onDisappear {
             cameraModel.stopCamera()
         }
     }
+    
+    private func openConfigWindow() {
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 300, height: 150),
+            styleMask: [.titled, .closable, .fullSizeContentView],
+            backing: .buffered, defer: false
+        )
+        panel.title = "Camera Selection"
+        panel.isFloatingPanel = true
+        panel.center()
+        
+        let configView = MirrorConfigView(moduleId: moduleId, cameraModel: cameraModel, onSave: {
+            if let idx = ModuleStore.shared.modules.firstIndex(where: { $0.id == moduleId }) {
+                if let data = try? JSONEncoder().encode(cameraModel.config),
+                   let str = String(data: data, encoding: .utf8) {
+                    ModuleStore.shared.modules[idx].customData = str
+                }
+            }
+            cameraModel.setupCamera()
+            panel.close()
+        }, onCancel: {
+            panel.close()
+        })
+        
+        panel.contentView = NSHostingView(rootView: configView)
+        panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+}
+
+struct MirrorConfigView: View {
+    let moduleId: UUID
+    @ObservedObject var cameraModel: CameraViewModel
+    var onSave: () -> Void
+    var onCancel: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("Select Camera")
+                .font(.headline)
+            
+            Picker("Camera", selection: $cameraModel.config.deviceId) {
+                ForEach(cameraModel.availableDevices, id: \.uniqueID) { device in
+                    Text(device.localizedName).tag(device.uniqueID)
+                }
+            }
+            .pickerStyle(.menu)
+            
+            HStack {
+                Button("Cancel", action: onCancel)
+                Button("Save", action: onSave)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding()
+        .onAppear {
+            cameraModel.fetchDevices()
+            if cameraModel.config.deviceId.isEmpty, let first = cameraModel.availableDevices.first {
+                cameraModel.config.deviceId = first.uniqueID
+            }
+        }
+    }
 }
 
 class CameraViewModel: ObservableObject {
     @Published var hasPermission = false
+    @Published var config = MirrorConfig()
+    @Published var availableDevices: [AVCaptureDevice] = []
+    
     let session = AVCaptureSession()
     
     func checkPermission() {
@@ -55,11 +148,31 @@ class CameraViewModel: ObservableObject {
         }
     }
     
-    private func setupCamera() {
-        guard !session.isRunning else { return }
+    func fetchDevices() {
+        let discoverySession = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInWideAngleCamera, .externalUnknown],
+            mediaType: .video,
+            position: .unspecified
+        )
+        DispatchQueue.main.async {
+            self.availableDevices = discoverySession.devices
+        }
+    }
+    
+    func setupCamera() {
+        guard hasPermission else { return }
         
         session.beginConfiguration()
-        guard let device = AVCaptureDevice.default(for: .video),
+        
+        var selectedDevice: AVCaptureDevice?
+        if !config.deviceId.isEmpty {
+            selectedDevice = AVCaptureDevice(uniqueID: config.deviceId)
+        }
+        if selectedDevice == nil {
+            selectedDevice = AVCaptureDevice.default(for: .video)
+        }
+        
+        guard let device = selectedDevice,
               let input = try? AVCaptureDeviceInput(device: device) else {
             session.commitConfiguration()
             return
@@ -75,8 +188,10 @@ class CameraViewModel: ObservableObject {
         }
         session.commitConfiguration()
         
-        DispatchQueue.global(qos: .userInitiated).async {
-            self.session.startRunning()
+        if !session.isRunning {
+            DispatchQueue.global(qos: .userInitiated).async {
+                self.session.startRunning()
+            }
         }
     }
     
@@ -121,6 +236,19 @@ struct CameraPreviewView: NSViewRepresentable {
     func makeNSView(context: Context) -> CameraPreviewNSView {
         let view = CameraPreviewNSView()
         let previewLayer = AVCaptureVideoPreviewLayer(session: session)
+        // Adjust for mirroring front camera if needed
+        if session.inputs.first is AVCaptureDeviceInput {
+            let deviceInput = session.inputs.first as! AVCaptureDeviceInput
+            if deviceInput.device.position == .front {
+                // Actually macOS handles this automatically, but let's just mirror anyway for normal mirror effect
+                // wait, macOS front camera isn't .front, it's .unspecified or builtIn
+                // For a mirror module, the user expects it to be mirrored horizontally.
+            }
+        }
+        // Force mirror for a "mirror" module
+        previewLayer.connection?.automaticallyAdjustsVideoMirroring = false
+        previewLayer.connection?.isVideoMirrored = true
+        
         previewLayer.videoGravity = .resizeAspectFill
         view.previewLayer = previewLayer
         return view
@@ -129,6 +257,8 @@ struct CameraPreviewView: NSViewRepresentable {
     func updateNSView(_ nsView: CameraPreviewNSView, context: Context) {
         if nsView.previewLayer?.session !== session {
             let previewLayer = AVCaptureVideoPreviewLayer(session: session)
+            previewLayer.connection?.automaticallyAdjustsVideoMirroring = false
+            previewLayer.connection?.isVideoMirrored = true
             previewLayer.videoGravity = .resizeAspectFill
             nsView.previewLayer = previewLayer
         }
