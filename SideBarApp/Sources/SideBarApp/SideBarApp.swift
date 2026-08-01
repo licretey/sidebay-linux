@@ -25,6 +25,7 @@ func t(_ key: String, _ lang: String) -> String {
         "Screen Record": ["en": "RecScreen", "zh": "录屏"],
         "Calculator": ["en": "Calculator", "zh": "计算器"],
         "Keyboard": ["en": "Keyboard", "zh": "键盘监视"],
+        "Server": ["en": "Server", "zh": "服务器"],
         "Not Set": ["en": "Not Set", "zh": "未设置"],
         "Add Module": ["en": "Add Module", "zh": "新增模块"],
         "Add": ["en": "Add", "zh": "添加"],
@@ -58,6 +59,7 @@ enum ModuleType: String, CaseIterable, Codable, Identifiable {
     case screenRecord = "Screen Record"
     case calculator = "Calculator"
     case keyboard = "Keyboard"
+    case server = "Server"
     
     var id: String { self.rawValue }
 }
@@ -505,6 +507,8 @@ struct MainSidebarView: View {
             CalculatorView()
         case .keyboard:
             KeyboardMonitorView()
+        case .server:
+            ServerView(moduleId: module.id, configData: module.customData)
         }
     }
 }
