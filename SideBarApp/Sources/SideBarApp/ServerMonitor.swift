@@ -305,7 +305,6 @@ struct ServerView: View {
     let configData: String
     
     @StateObject private var service: ServerMonitorService
-    @State private var showingConfig = false
     
     init(moduleId: UUID, configData: String) {
         self.moduleId = moduleId
@@ -337,32 +336,32 @@ struct ServerView: View {
             } else {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text("CPU:")
+                        Image(systemName: "cpu")
                             .font(.system(size: 10, weight: .bold))
-                            .frame(width: 35, alignment: .leading)
+                            .frame(width: 20, alignment: .leading)
                         Text(String(format: "%.1f%%", service.cpuUsage))
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                     }
                     HStack {
-                        Text("MEM:")
+                        Image(systemName: "memorychip")
                             .font(.system(size: 10, weight: .bold))
-                            .frame(width: 35, alignment: .leading)
+                            .frame(width: 20, alignment: .leading)
                         let memPct = service.memoryTotal > 0 ? (service.memoryUsed / service.memoryTotal) * 100 : 0
                         Text("\(formatBytes(service.memoryUsed))/\(formatBytes(service.memoryTotal)) (\(String(format: "%.1f%%", memPct)))")
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                     }
                     HStack {
-                        Text("DSK:")
+                        Image(systemName: "internaldrive")
                             .font(.system(size: 10, weight: .bold))
-                            .frame(width: 35, alignment: .leading)
+                            .frame(width: 20, alignment: .leading)
                         let diskPct = service.diskTotal > 0 ? (service.diskUsed / service.diskTotal) * 100 : 0
                         Text("\(formatBytes(service.diskUsed))/\(formatBytes(service.diskTotal)) (\(String(format: "%.1f%%", diskPct)))")
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                     }
                     HStack {
-                        Text("NET:")
+                        Image(systemName: "network")
                             .font(.system(size: 10, weight: .bold))
-                            .frame(width: 35, alignment: .leading)
+                            .frame(width: 20, alignment: .leading)
                         Text("↑ \(formatNet(service.netTx))/s  ↓ \(formatNet(service.netRx))/s")
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                     }
@@ -375,7 +374,7 @@ struct ServerView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
-            showingConfig = true
+            openConfigWindow()
         }
         .onAppear {
             service.start()
@@ -383,18 +382,34 @@ struct ServerView: View {
         .onDisappear {
             service.stop()
         }
-        .sheet(isPresented: $showingConfig) {
-            ServerConfigView(moduleId: moduleId, config: $service.config) {
-                if let idx = ModuleStore.shared.modules.firstIndex(where: { $0.id == moduleId }) {
-                    if let data = try? JSONEncoder().encode(service.config),
-                       let str = String(data: data, encoding: .utf8) {
-                        ModuleStore.shared.modules[idx].customData = str
-                    }
+    }
+    
+    private func openConfigWindow() {
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 350),
+            styleMask: [.titled, .closable, .fullSizeContentView],
+            backing: .buffered, defer: false
+        )
+        panel.title = "Server Configuration"
+        panel.isFloatingPanel = true
+        panel.center()
+        
+        let configView = ServerConfigView(moduleId: moduleId, service: service, onSave: {
+            if let idx = ModuleStore.shared.modules.firstIndex(where: { $0.id == moduleId }) {
+                if let data = try? JSONEncoder().encode(service.config),
+                   let str = String(data: data, encoding: .utf8) {
+                    ModuleStore.shared.modules[idx].customData = str
                 }
-                service.start()
-                showingConfig = false
             }
-        }
+            service.start()
+            panel.close()
+        }, onCancel: {
+            panel.close()
+        })
+        
+        panel.contentView = NSHostingView(rootView: configView)
+        panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
     
     private func formatBytes(_ bytes: Double) -> String {
@@ -413,9 +428,9 @@ struct ServerView: View {
 
 struct ServerConfigView: View {
     let moduleId: UUID
-    @Binding var config: ServerConfig
+    @ObservedObject var service: ServerMonitorService
     var onSave: () -> Void
-    @Environment(\.presentationMode) var presentationMode
+    var onCancel: () -> Void
     
     var body: some View {
         VStack(spacing: 16) {
@@ -423,21 +438,21 @@ struct ServerConfigView: View {
                 .font(.headline)
             
             Form {
-                TextField("Server Name", text: Binding(get: { config.name ?? "" }, set: { config.name = $0 }))
-                TextField("IP Address", text: $config.ip)
-                TextField("Port", text: $config.port)
-                TextField("Username", text: $config.username)
-                SecureField("Password", text: $config.password)
+                TextField("Server Name", text: Binding(get: { service.config.name ?? "" }, set: { service.config.name = $0 }))
+                TextField("IP Address", text: $service.config.ip)
+                TextField("Port", text: $service.config.port)
+                TextField("Username", text: $service.config.username)
+                SecureField("Password", text: $service.config.password)
                 
                 HStack {
-                    TextField("Private Key Path", text: $config.keyPath)
+                    TextField("Private Key Path", text: $service.config.keyPath)
                     Button("Select") {
                         let panel = NSOpenPanel()
                         panel.allowsMultipleSelection = false
                         panel.canChooseDirectories = false
                         panel.canChooseFiles = true
                         if panel.runModal() == .OK {
-                            config.keyPath = panel.url?.path ?? ""
+                            service.config.keyPath = panel.url?.path ?? ""
                         }
                     }
                 }
@@ -446,7 +461,7 @@ struct ServerConfigView: View {
             
             HStack {
                 Button("Cancel") {
-                    presentationMode.wrappedValue.dismiss()
+                    onCancel()
                 }
                 Button("Save") {
                     onSave()
