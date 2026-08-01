@@ -359,14 +359,14 @@ struct ServerView: View {
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                     }
                     HStack {
-                        Image(systemName: "arrow.up.network")
+                        Image(systemName: "arrow.up")
                             .font(.system(size: 10, weight: .bold))
                             .frame(width: 20, alignment: .leading)
                         Text("\(formatNet(service.netTx))/s")
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                     }
                     HStack {
-                        Image(systemName: "arrow.down.network")
+                        Image(systemName: "arrow.down")
                             .font(.system(size: 10, weight: .bold))
                             .frame(width: 20, alignment: .leading)
                         Text("\(formatNet(service.netRx))/s")
