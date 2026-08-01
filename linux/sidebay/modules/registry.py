@@ -4,6 +4,7 @@ from sidebay.modules.base import Module
 from sidebay.modules.calculator import CalculatorModule
 from sidebay.modules.fan import FanModule
 from sidebay.modules.network import NetworkModule
+from sidebay.modules.stock import StockModule
 from sidebay.modules.usage import UsageModule
 
 MODULE_TYPES = ["CPU", "GPU", "Memory", "Disk", "Fan", "Network",
@@ -19,4 +20,6 @@ def create_module(type_: str, store, module_id: str, monitor) -> Module:
         return NetworkModule(store, module_id, monitor)
     if type_ == "Calculator":
         return CalculatorModule(store, module_id)
+    if type_ == "Stock":
+        return StockModule(store, module_id)
     raise ValueError(f"module type not wired yet: {type_}")
