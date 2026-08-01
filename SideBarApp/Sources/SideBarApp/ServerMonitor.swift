@@ -335,40 +335,40 @@ struct ServerView: View {
                     .foregroundColor(.secondary)
             } else {
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack {
+                    HStack(spacing: 4) {
                         Image(systemName: "cpu")
                             .font(.system(size: 10, weight: .bold))
-                            .frame(width: 20, alignment: .leading)
+                            .frame(width: 14, alignment: .center)
                         Text(String(format: "%.1f%%", service.cpuUsage))
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                     }
-                    HStack {
+                    HStack(spacing: 4) {
                         Image(systemName: "memorychip")
                             .font(.system(size: 10, weight: .bold))
-                            .frame(width: 20, alignment: .leading)
+                            .frame(width: 14, alignment: .center)
                         let memPct = service.memoryTotal > 0 ? (service.memoryUsed / service.memoryTotal) * 100 : 0
                         Text(String(format: "%.1f%%", memPct))
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                     }
-                    HStack {
+                    HStack(spacing: 4) {
                         Image(systemName: "internaldrive")
                             .font(.system(size: 10, weight: .bold))
-                            .frame(width: 20, alignment: .leading)
+                            .frame(width: 14, alignment: .center)
                         let diskPct = service.diskTotal > 0 ? (service.diskUsed / service.diskTotal) * 100 : 0
                         Text(String(format: "%.1f%%", diskPct))
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                     }
-                    HStack {
+                    HStack(spacing: 4) {
                         Image(systemName: "arrow.up")
                             .font(.system(size: 10, weight: .bold))
-                            .frame(width: 20, alignment: .leading)
+                            .frame(width: 14, alignment: .center)
                         Text("\(formatNet(service.netTx))/s")
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                     }
-                    HStack {
+                    HStack(spacing: 4) {
                         Image(systemName: "arrow.down")
                             .font(.system(size: 10, weight: .bold))
-                            .frame(width: 20, alignment: .leading)
+                            .frame(width: 14, alignment: .center)
                         Text("\(formatNet(service.netRx))/s")
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                     }
