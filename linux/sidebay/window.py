@@ -67,7 +67,7 @@ class SidebarWindow(Gtk.ApplicationWindow):
         self._modules: list[Module] = []
         for m in self.store.modules:
             if m.type not in ("CPU", "GPU", "Memory", "Disk", "Fan", "Network", "Calculator", "Stock",
-                              "Countdown", "Stopwatch"):
+                              "Countdown", "Stopwatch", "Keyboard"):
                 continue  # Task 8-11 逐步放开
             try:
                 module = create_module(m.type, self.store, m.module_id, self._monitor)

@@ -3,6 +3,7 @@
 from sidebay.modules.base import Module
 from sidebay.modules.calculator import CalculatorModule
 from sidebay.modules.fan import FanModule
+from sidebay.modules.keyboard import KeyboardModule
 from sidebay.modules.network import NetworkModule
 from sidebay.modules.stock import StockModule
 from sidebay.modules.usage import UsageModule
@@ -22,6 +23,8 @@ def create_module(type_: str, store, module_id: str, monitor) -> Module:
         return CalculatorModule(store, module_id)
     if type_ == "Stock":
         return StockModule(store, module_id)
+    if type_ == "Keyboard":
+        return KeyboardModule(store, module_id)
     from sidebay.modules.countdown import CountdownModule
     from sidebay.modules.stopwatch import StopwatchModule
 
