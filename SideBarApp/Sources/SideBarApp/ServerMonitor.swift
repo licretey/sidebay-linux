@@ -428,8 +428,7 @@ struct ServerView: View {
     
     private func formatNet(_ bytes: Double) -> String {
         if bytes > 1_048_576 { return String(format: "%.1fM", bytes / 1_048_576) }
-        if bytes > 1024 { return String(format: "%.0fK", bytes / 1024) }
-        return String(format: "%.0fB", bytes)
+        return String(format: "%.0fK", bytes / 1024)
     }
 }
 
