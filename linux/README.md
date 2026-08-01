@@ -13,7 +13,7 @@ X11 贴边停靠，11 个模块。界面默认中文。
 Debian/Ubuntu 直接运行所需包：
 
 ```bash
-sudo apt install python3 python3-gi python3-gi-cairo gir1.2-gtk-4.0
+sudo apt install python3 python3-gi python3-gi-cairo gir1.2-gtk-4.0 xvfb   # xvfb 仅用于无显示环境冒烟测试
 python3 -m pip install --user python-xlib   # 仅键盘监视需要，缺失时模块显示"无辅助功能权限"
 ```
 
