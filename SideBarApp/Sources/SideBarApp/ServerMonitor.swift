@@ -78,50 +78,39 @@ class ServerMonitorService: ObservableObject {
         }
         
         DispatchQueue.global().async {
-            if !self.config.keyPath.isEmpty {
-                // Key-based auth
-                let task = Process()
-                task.launchPath = "/usr/bin/ssh"
-                task.arguments = [
-                    "-M", "-S", self.socketPath,
-                    "-o", "StrictHostKeyChecking=no",
-                    "-o", "ConnectTimeout=5",
-                    "-i", self.config.keyPath,
-                    "-N", "-f", "-p", self.config.port,
-                    "\(self.config.username)@\(self.config.ip)"
-                ]
-                task.launch()
-                task.waitUntilExit()
-                
-                completion(task.terminationStatus == 0)
-            } else {
-                // Password-based auth via expect
-                let expectScript = """
-                set timeout 10
-                spawn ssh -M -S \(self.socketPath) -o StrictHostKeyChecking=no -o ConnectTimeout=5 -N -f -p \(self.config.port) \(self.config.username)@\(self.config.ip)
-                expect {
-                    "*assword:*" {
-                        send "\(self.config.password)\\r"
-                        exp_continue
-                    }
-                    eof
+            // Always use expect to handle potential password/passphrase prompts
+            let keyArg = self.config.keyPath.isEmpty ? "" : "-i \"\(self.config.keyPath)\""
+            
+            let expectScript = """
+            set timeout 10
+            spawn ssh -M -S \(self.socketPath) -o StrictHostKeyChecking=no -o ConnectTimeout=5 -N -f -p \(self.config.port) \(keyArg) \(self.config.username)@\(self.config.ip)
+            expect {
+                "*assword:*" {
+                    send "\(self.config.password)\\r"
+                    exp_continue
                 }
-                """
-                let scriptPath = "/tmp/sidebay_expect_\(self.id.uuidString).exp"
-                try? expectScript.write(toFile: scriptPath, atomically: true, encoding: .utf8)
-                
-                let task = Process()
-                task.launchPath = "/usr/bin/expect"
-                task.arguments = [scriptPath]
-                task.launch()
-                task.waitUntilExit()
-                
-                try? fileManager.removeItem(atPath: scriptPath)
-                
-                // Wait briefly for socket creation
-                usleep(500_000)
-                completion(fileManager.fileExists(atPath: self.socketPath))
+                "*assphrase*" {
+                    send "\(self.config.password)\\r"
+                    exp_continue
+                }
+                eof
             }
+            """
+            
+            let scriptPath = "/tmp/sidebay_expect_\(self.id.uuidString).exp"
+            try? expectScript.write(toFile: scriptPath, atomically: true, encoding: .utf8)
+            
+            let task = Process()
+            task.launchPath = "/usr/bin/expect"
+            task.arguments = [scriptPath]
+            task.launch()
+            task.waitUntilExit()
+            
+            try? fileManager.removeItem(atPath: scriptPath)
+            
+            // Wait briefly for socket creation
+            usleep(500_000)
+            completion(fileManager.fileExists(atPath: self.socketPath))
         }
     }
     
