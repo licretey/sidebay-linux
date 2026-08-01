@@ -1,0 +1,19 @@
+"""模块注册表：类型 -> 工厂。"""
+
+from sidebay.modules.base import Module
+from sidebay.modules.fan import FanModule
+from sidebay.modules.network import NetworkModule
+from sidebay.modules.usage import UsageModule
+
+MODULE_TYPES = ["CPU", "GPU", "Memory", "Disk", "Fan", "Network",
+                "Stock", "Countdown", "Stopwatch", "Calculator", "Keyboard"]
+
+
+def create_module(type_: str, store, module_id: str, monitor) -> Module:
+    if type_ in ("CPU", "GPU", "Memory", "Disk"):
+        return UsageModule(store, module_id, monitor, kind=type_)
+    if type_ == "Fan":
+        return FanModule(store, module_id, monitor)
+    if type_ == "Network":
+        return NetworkModule(store, module_id, monitor)
+    raise ValueError(f"module type not wired yet: {type_}")

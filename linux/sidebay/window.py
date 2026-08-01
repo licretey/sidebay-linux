@@ -4,7 +4,9 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
-from gi.repository import Gdk, Gtk
+from gi.repository import GLib, Gdk, Gtk
+
+from sidebay.monitor import SystemMonitor
 
 
 class SidebarWindow(Gtk.ApplicationWindow):
@@ -39,15 +41,39 @@ class SidebarWindow(Gtk.ApplicationWindow):
         self._apply_position()
         self._apply_width()
         self._apply_opacity()
+        self._monitor = SystemMonitor()
         self.rebuild_modules()
 
+        self._tick_timer = GLib.timeout_add(1000, self._tick)
+        self.connect("destroy", self._on_window_destroy)
+
+    def _tick(self) -> bool:
+        self._monitor.last = self._monitor.tick()
+        for module in getattr(self, "_modules", []):
+            try:
+                module.on_tick()
+            except Exception:
+                pass
+        return True
+
+    def _on_window_destroy(self, *_a) -> None:
+        GLib.source_remove(self._tick_timer)
+
     def rebuild_modules(self) -> None:
-        # Task 7 接入真实模块；先用占位分隔线保证结构存在
+        from sidebay.modules.registry import create_module
+
         while (child := self._module_box.get_first_child()) is not None:
             self._module_box.remove(child)
-        for _ in self.store.modules:
-            sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-            self._module_box.append(sep)
+        self._modules: list[Module] = []
+        for m in self.store.modules:
+            if m.type not in ("CPU", "GPU", "Memory", "Disk", "Fan", "Network"):
+                continue  # Task 8-11 逐步放开
+            try:
+                module = create_module(m.type, self.store, m.module_id, self._monitor)
+            except ValueError:
+                continue
+            self._modules.append(module)
+            self._module_box.append(module.build())
 
     def _on_opacity_changed(self, scale: Gtk.Scale) -> None:
         value = scale.get_value()
