@@ -41,6 +41,11 @@ struct MirrorModuleView: View {
         .onTapGesture(count: 1) {
             isBlack.toggle()
         }
+        .contextMenu {
+            Button("Open Standalone Window") {
+                openStandaloneWindow()
+            }
+        }
         .onAppear {
             var config = MirrorConfig()
             if let data = customData.data(using: .utf8),
@@ -80,6 +85,26 @@ struct MirrorModuleView: View {
         
         panel.contentView = NSHostingView(rootView: configView)
         panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func openStandaloneWindow() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
+            styleMask: [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView],
+            backing: .buffered, defer: false
+        )
+        window.title = "Mirror"
+        window.center()
+        
+        let standaloneView = CameraPreviewView(session: cameraModel.session)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black)
+            .ignoresSafeArea()
+            
+        let hostingView = NSHostingView(rootView: standaloneView)
+        window.contentView = hostingView
+        window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 }
