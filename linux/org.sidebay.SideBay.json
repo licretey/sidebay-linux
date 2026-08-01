@@ -1,0 +1,47 @@
+{
+  "app-id": "org.sidebay.SideBay",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "47",
+  "sdk": "org.gnome.Sdk",
+  "command": "sidebay",
+  "finish-args": [
+    "--socket=wayland",
+    "--socket=x11",
+    "--share=network",
+    "--device=dri",
+    "--filesystem=xdg-config/autostart"
+  ],
+  "modules": [
+    {
+      "name": "python-xlib",
+      "buildsystem": "simple",
+      "build-commands": [
+        "pip3 install --prefix=/app --no-deps ."
+      ],
+      "sources": [
+        {
+          "type": "archive",
+          "url": "https://files.pythonhosted.org/packages/86/f5/8c0653e5bb54e0cbdfe27bf32d41f27bc4e12faa8742778c17f2a71be2c0/python-xlib-0.33.tar.gz",
+          "sha256": "55af7906a2c75ce6cb280a584776080602444f75815a7aff4d287bb2d7018b32"
+        }
+      ]
+    },
+    {
+      "name": "sidebay",
+      "buildsystem": "simple",
+      "build-commands": [
+        "mkdir -p /app/lib/sidebay /app/bin",
+        "cp -r sidebay /app/lib/",
+        "cp -r tests /app/lib/ 2>/dev/null || true",
+        "printf '#!/bin/sh\\nexec python3 -m sidebay \"$@\"\\n' > /app/bin/sidebay",
+        "chmod +x /app/bin/sidebay"
+      ],
+      "sources": [
+        {
+          "type": "dir",
+          "path": "."
+        }
+      ]
+    }
+  ]
+}
