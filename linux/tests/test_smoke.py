@@ -29,6 +29,33 @@ def test_rebuild_modules_creates_widgets(tmp_path):
 
 
 @pytest.mark.smoke
+def test_settings_window_header_add_module_and_close_callback(tmp_path):
+    from sidebay.settings import SettingsWindow
+
+    store = Store(path=str(tmp_path / "c.json"))
+    app = SidebayApplication(store=store)
+    app.register()
+    closed = []
+    win = SettingsWindow(app, store, on_close_callback=lambda: closed.append(True))
+    # 自绘暗色头部存在（非 GNOME headerbar）
+    root = win.get_child()
+    assert root is not None
+    header = root.get_first_child()
+    assert "sb-settings-header" in header.get_css_classes()
+    # 通过列表 API 路径添加模块：下拉选中 → 添加 → store.add → 重建列表
+    before = len(store.modules)
+    win._type_dropdown.set_selected(2)  # Memory
+    win._add_module()
+    assert len(store.modules) == before + 1
+    assert store.modules[-1].type == "Memory"
+    # 关闭 → on-close 回调执行（close-request 只在已映射窗口上发出，故先 present）
+    win.present()
+    win.close()
+    assert closed == [True]
+    win.destroy()
+
+
+@pytest.mark.smoke
 def test_keyboard_module_builds_without_x(tmp_path):
     from sidebay.modules.keyboard import KeyboardModule
     from sidebay.store import Store
