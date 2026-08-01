@@ -14,6 +14,9 @@ from sidebay.modules.base import Module
 
 STOCK_URL = "https://qt.gtimg.cn/q={symbol}&t={ts}"
 
+# 请求本身失败（OSError，如无网络）的哨兵：与「请求成功但解析失败（无效代码）」区分
+FETCH_FAILED = object()
+
 
 @dataclass
 class StockQuote:
@@ -130,8 +133,27 @@ class StockModule(Module):
             label.remove_css_class("sb-stock-down")
             label.add_css_class(cls)
 
+    def _apply_fetch_result(self, result) -> None:
+        """统一处理轮询结果（主线程调用）。
+
+        FETCH_FAILED（请求本身失败）→ 静默，保持上次显示，下个轮询重试；
+        None（请求成功但解析失败，如无效代码）→ 显示「无效代码」；
+        其余 → 应用行情。
+        """
+        if result is FETCH_FAILED:
+            return
+        if result is None:
+            self._name.set_text(t("Invalid Code", self._lang))
+            self._price.set_text("--")
+            self._change.set_text("")
+            for label in (self._price, self._change):
+                label.remove_css_class("sb-stock-up")
+                label.remove_css_class("sb-stock-down")
+            return
+        self._apply_quote(result)
+
     def _poll(self) -> bool:
-        symbol, lang = self.symbol, self._lang
+        symbol = self.symbol
         url = STOCK_URL.format(symbol=symbol, ts=int(datetime.now().timestamp()))
         req = urllib.request.Request(url, headers={"User-Agent": "Sidebay/1.0"})
 
@@ -140,12 +162,12 @@ class StockModule(Module):
                 with urllib.request.urlopen(req, timeout=5) as resp:
                     return parse_stock_response(resp.read())
             except OSError:
-                return None
+                return FETCH_FAILED
 
-        def _done(quote: StockQuote | None) -> None:
-            if self._editing or quote is None:
+        def _done(result) -> None:
+            if self._editing:
                 return
-            self._apply_quote(quote)
+            self._apply_fetch_result(result)
 
         import threading
         threading.Thread(target=lambda: GLib.idle_add(_done, _fetch()), daemon=True).start()

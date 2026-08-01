@@ -63,9 +63,9 @@ flatpak run org.sidebay.SideBay     # Flatpak 方式
 xvfb-run -a ./run.sh                # 退出码 0 且无 traceback
 ```
 
-开机自启：设置窗口的"开机自启"开关写入 `~/.config/autostart/sidebay.desktop`，
-默认 Exec 为 `flatpak run org.sidebay.SideBay`（Flatpak 部署下正确；
-直接运行的用户请把 Exec 改为 `python3 -m sidebay`）。
+开机自启：设置窗口的"开机自启"开关写入 `~/.config/autostart/sidebay.desktop`。
+Exec 行自动适配运行方式——Flatpak 下（检测到 `FLATPAK_ID`）写
+`flatpak run org.sidebay.SideBay`，直接运行写仓库 `run.sh` 的绝对路径。
 配置文件：`~/.config/sidebay/config.json`。
 
 ## 测试
@@ -109,3 +109,6 @@ i18n、Store 持久化、计时器、计算器、股票、键盘格式、模块�
   注册表会静默跳过未接线的模块类型（默认配置中的 "Screen Record" 不会导致崩溃）。
 - **GPU 传感器直读**：GPU 占用读取受硬件与驱动限制（amdgpu sysfs / nvidia-smi），
   非 NVIDIA 或旧驱动时同样回退 0。
+- **渲染器默认 `cairo`**：应用默认以 `GSK_RENDERER=cairo` 运行（无 GPU 依赖、
+  内存策略稳定，实测空闲 RSS ~93MB）。如需 GPU 加速可覆盖：
+  `GSK_RENDERER=gl ./run.sh` 或 `flatpak run --env=GSK_RENDERER=gl org.sidebay.SideBay`。

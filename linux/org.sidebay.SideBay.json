@@ -33,7 +33,7 @@
         "mkdir -p /app/lib/sidebay /app/bin",
         "cp -r sidebay/* /app/lib/sidebay/",
         "cp -r tests /app/lib/ 2>/dev/null || true",
-        "printf '#!/bin/sh\\nexec env PYTHONPATH=/app/lib:/app/lib/python3.12/site-packages python3 -m sidebay \"$@\"\\n' > /app/bin/sidebay",
+        "printf '#!/bin/sh\\nexec env PYTHONPATH=\"/app/lib:$(python3 -c \"import site; print(site.getsitepackages()[0])\")\" python3 -m sidebay \"$@\"\\n' > /app/bin/sidebay",
         "chmod +x /app/bin/sidebay"
       ],
       "sources": [

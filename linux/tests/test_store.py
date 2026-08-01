@@ -67,6 +67,32 @@ def test_corrupt_file_recovers_to_defaults(tmp_path):
     assert [m.type for m in s.modules] == Store.DEFAULT_TYPES
 
 
+def test_unknown_keys_ignored_on_load(tmp_path):
+    """新旧配置 schema 漂移：未知字段必须被过滤，不得 TypeError 崩溃。"""
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({
+        "modules": [{"type": "CPU", "module_id": "m1", "custom_data": "x", "future_key": 1}],
+        "settings": {"position": "right", "width": 100.0, "unknown": True},
+    }))
+    s = Store(path=str(path))
+    s.load()
+    assert len(s.modules) == 1
+    assert s.modules[0].type == "CPU"
+    assert s.modules[0].module_id == "m1"
+    assert s.modules[0].custom_data == "x"
+    assert s.settings.position == "right"
+    assert s.settings.width == 100.0
+
+
+def test_malformed_module_entry_falls_back_to_defaults(tmp_path):
+    """模块条目不是对象（如 int）→ 整体回退默认配置，不崩溃。"""
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"modules": [42, {"type": "GPU"}], "settings": {}}))
+    s = Store(path=str(path))
+    s.load()
+    assert [m.type for m in s.modules] == Store.DEFAULT_TYPES
+
+
 def test_default_config_path_honors_xdg(monkeypatch, tmp_path):
     from sidebay.store import default_config_path
 

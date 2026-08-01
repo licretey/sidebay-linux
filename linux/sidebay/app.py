@@ -1,5 +1,6 @@
 """Gtk.Application：单实例、CSS 装载、窗口管理。"""
 
+import os
 import sys
 from pathlib import Path
 
@@ -13,6 +14,17 @@ from sidebay.store import Store
 from sidebay.window import SidebarWindow
 
 CSS_PATH = Path(__file__).parent / "style.css"
+
+
+def autostart_exec_line() -> str:
+    """计算写入 ~/.config/autostart/sidebay.desktop 的 Exec 行。
+
+    Flatpak 沙盒内（FLATPAK_ID 由运行时注入）宿主 python3 无 sidebay 模块，
+    必须用 `flatpak run` 启动；直接运行则用仓库 run.sh 的绝对路径。
+    """
+    if os.environ.get("FLATPAK_ID"):
+        return "flatpak run org.sidebay.SideBay"
+    return str(Path(__file__).resolve().parent.parent / "run.sh")
 
 
 class SidebayApplication(Gtk.Application):
@@ -46,9 +58,11 @@ class SidebayApplication(Gtk.Application):
             return
         self.settings_window = SettingsWindow(
             self, self.store,
-            exec_line="python3 -m sidebay",
+            exec_line=autostart_exec_line(),
             on_close_callback=lambda: (
                 self.window.rebuild_modules() if self.window else None,
+                self.window._apply_width() if self.window else None,
+                self.window._apply_position() if self.window else None,
                 setattr(self, "settings_window", None),
             ),
         )

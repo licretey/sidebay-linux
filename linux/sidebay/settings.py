@@ -6,7 +6,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
 from gi.repository import GLib, GObject, Gdk, Gtk
 
-from sidebay.autostart import set_autostart
+from sidebay.autostart import autostart_enabled, set_autostart
 from sidebay.i18n import t
 from sidebay.modules.registry import MODULE_TYPES
 from sidebay.store import AppModule
@@ -136,7 +136,9 @@ class SettingsWindow(Gtk.ApplicationWindow):
         try:
             set_autostart(bool(state), self._exec_line)
         except OSError:
-            return False
+            # 写入失败：回读磁盘真实状态并让开关与之对齐（GTK4 state-set 返回值语义含糊，不依赖它）
+            switch.set_active(autostart_enabled())
+            return True
         self.store.settings.launch_at_login = bool(state)
         self.store.save()
         return False

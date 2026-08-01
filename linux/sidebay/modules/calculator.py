@@ -81,6 +81,7 @@ class Calculator:
 class CalculatorModule(Module):
     def build(self) -> Gtk.Widget:
         self.calc = Calculator()
+        self._buttons: list[Gtk.Button] = []
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         self._display_label = Gtk.Label(label="0")
         self._display_label.add_css_class("sb-calc-display")
@@ -94,8 +95,14 @@ class CalculatorModule(Module):
                 button.set_hexpand(True)
                 button.set_size_request(-1, 22)
                 button.connect("clicked", self._on_key, key)
+                # 运算符橙、功能键灰、数字玻璃
                 if key in OPERATORS:
+                    button.add_css_class("sb-calc-op")
+                elif key in FUNCTIONS:
+                    button.add_css_class("sb-calc-fn")
+                else:
                     button.add_css_class("sb-btn-glass")
+                self._buttons.append(button)
                 row_box.append(button)
             box.append(row_box)
         return self._boxed(box)

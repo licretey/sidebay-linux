@@ -180,3 +180,144 @@ def test_all_module_types_build(tmp_path):
     finally:
         for w in widgets:
             w.run_dispose()  # GTK 4.22 无 gtk_widget_destroy，用 run_dispose 触发 destroy 信号
+
+
+@pytest.mark.smoke
+def test_module_height_pct_applies_size_request(tmp_path):
+    """M2：height_pct=50 时模块高度请求 ≈ 侧边栏工作区高度的一半。"""
+    store = Store(path=str(tmp_path / "c.json"))
+    app = SidebayApplication(store=store)
+    win = app.create_window()
+    try:
+        workarea_h = win._workarea[3]
+        assert workarea_h > 0
+        store.set_height_pct(store.modules[0].module_id, 50.0)
+        win.rebuild_modules()
+        first = win._module_box.get_first_child()
+        assert first is not None
+        _, height = first.get_size_request()
+        assert abs(height - int(0.5 * workarea_h)) <= 2
+    finally:
+        win.destroy()
+
+
+@pytest.mark.smoke
+def test_network_arrow_markup_uses_color(tmp_path):
+    """SF1：上行绿 #33D966、下行蓝 #5299FF，format_bytes 输出保留。"""
+    from sidebay.modules.network import DOWN_COLOR, UP_COLOR, NetworkModule, arrow_markup
+
+    assert arrow_markup("▲", "1 MB/s", UP_COLOR) == '<span foreground="#33D966">▲</span>  1 MB/s'
+    assert arrow_markup("▼", "2 MB/s", DOWN_COLOR) == '<span foreground="#5299FF">▼</span>  2 MB/s'
+
+    store = Store(path=str(tmp_path / "c.json"))
+    module = NetworkModule(store, "net-test", monitor=None)
+    widget = module.build()
+    try:
+        # 本 GTK 下 get_label 返回原始 markup：可直接断言颜色真实落到了 label 上
+        assert '<span foreground="#33D966">▲</span>' in module._up.get_label()
+        assert '<span foreground="#5299FF">▼</span>' in module._down.get_label()
+        assert "0 B/s" in module._up.get_label()
+    finally:
+        widget.run_dispose()
+
+
+@pytest.mark.smoke
+def test_calculator_module_button_css_classes(tmp_path):
+    """SF2：运算符橙、功能键灰、数字玻璃。"""
+    from sidebay.modules.calculator import FUNCTIONS, OPERATORS, CalculatorModule
+
+    store = Store(path=str(tmp_path / "c.json"))
+    module = CalculatorModule(store, "calc-test")
+    widget = module.build()
+    try:
+        assert module._buttons
+        for btn in module._buttons:
+            key = btn.get_label()
+            if key in OPERATORS:
+                assert "sb-calc-op" in btn.get_css_classes(), key
+            elif key in FUNCTIONS:
+                assert "sb-calc-fn" in btn.get_css_classes(), key
+            else:
+                assert "sb-btn-glass" in btn.get_css_classes(), key
+    finally:
+        widget.run_dispose()
+
+
+@pytest.mark.smoke
+def test_stock_module_invalid_code_shows_error(tmp_path):
+    """SF3：请求成功但解析失败（无效代码）→ 显示「无效代码」；网络失败 → 静默。"""
+    from sidebay.i18n import t
+    from sidebay.modules.stock import FETCH_FAILED, StockModule, StockQuote
+
+    store = Store(path=str(tmp_path / "c.json"))
+    module = StockModule(store, "stock-test")
+    widget = module.build()
+    try:
+        module._apply_fetch_result(None)
+        assert module._name.get_text() == t("Invalid Code", store.settings.language)
+        assert module._price.get_text() == "--"
+        assert module._change.get_text() == ""
+        module._apply_fetch_result(FETCH_FAILED)  # 网络失败：保持上次显示
+        assert module._name.get_text() == t("Invalid Code", store.settings.language)
+        module._apply_fetch_result(StockQuote(name="X", price="1.00", change_pct="+1%", is_up=True))
+        assert module._name.get_text() == "X"
+    finally:
+        widget.run_dispose()
+
+
+@pytest.mark.smoke
+def test_settings_close_applies_width_and_position_live(tmp_path):
+    """SF4：设置窗口关闭后宽度/位置实时生效（不只重建模块）。"""
+    app = SidebayApplication(store=Store(path=str(tmp_path / "c.json")))
+    win = app.create_window()
+    app._on_open_settings()
+    sw = app.settings_window
+    try:
+        assert sw is not None
+        app.store.settings.width = 150.0
+        app.store.settings.position = "right"
+        sw._on_close_callback()
+        assert app.settings_window is None
+        assert win.get_default_size()[0] == 150
+    finally:
+        if sw is not None:
+            sw.destroy()
+        win.destroy()
+
+
+@pytest.mark.smoke
+def test_autostart_switch_rolls_back_on_write_failure(tmp_path, monkeypatch):
+    """SF7：自启写入失败（OSError）→ 回读磁盘真实状态并对齐开关。"""
+    from sidebay.settings import SettingsWindow
+
+    store = Store(path=str(tmp_path / "c.json"))
+    app = SidebayApplication(store=store)
+    # 不 register：同进程前序测试已导出 /org/sidebay/SideBay，二次注册会 D-Bus 冲突；
+    # 本测试不 present 窗口，无需注册
+    win = SettingsWindow(app, store, on_close_callback=lambda: None)
+    try:
+        monkeypatch.setattr("sidebay.settings.set_autostart",
+                            lambda _e, _x: (_ for _ in ()).throw(OSError()))
+        monkeypatch.setattr("sidebay.autostart.autostart_dir", lambda: tmp_path / "autostart")
+        switch = win._autostart_switch
+        switch.set_active(False)
+        win._on_autostart_toggled(switch, True)  # 用户开启但写入失败
+        assert switch.get_active() is False      # 磁盘无文件 → 开关保持关闭
+        assert store.settings.launch_at_login is False
+        # 成功路径：持久化
+        monkeypatch.setattr("sidebay.settings.set_autostart", lambda _e, _x: None)
+        win._on_autostart_toggled(switch, True)
+        assert store.settings.launch_at_login is True
+    finally:
+        win.destroy()
+
+
+@pytest.mark.smoke
+def test_style_css_defines_smoke_classes():
+    """SF2/SF9：模块引用的 CSS 类必须在 style.css 中定义。"""
+    from pathlib import Path
+
+    css = Path(__file__).resolve().parent.parent / "sidebay" / "style.css"
+    text = css.read_text()
+    for cls in (".sb-calc-op", ".sb-calc-fn", ".sb-edge-zone", ".sb-stock-up", ".sb-stock-down"):
+        assert cls in text

@@ -41,14 +41,24 @@ class Store:
         self.settings = Settings()
         self.load()
 
+    @staticmethod
+    def _filter_fields(data: dict, cls) -> dict:
+        """丢弃 dataclass 未知字段，防止旧版/新版配置漂移导致 TypeError 崩溃。"""
+        known = cls.__dataclass_fields__
+        return {k: v for k, v in data.items() if k in known}
+
     def load(self) -> None:
         try:
             raw = json.loads(self.path.read_text())
-        except (OSError, json.JSONDecodeError):
+            modules = [AppModule(**self._filter_fields(m, AppModule))
+                       for m in raw.get("modules", [])]
+            settings = Settings(**self._filter_fields(raw.get("settings", {}), Settings))
+        except (OSError, json.JSONDecodeError, TypeError, AttributeError, ValueError):
             self.modules = [AppModule(type=ty) for ty in self.DEFAULT_TYPES]
+            self.settings = Settings()
             return
-        self.modules = [AppModule(**m) for m in raw.get("modules", [])]
-        self.settings = Settings(**raw.get("settings", {}))
+        self.modules = modules
+        self.settings = settings
         if not self.modules:
             self.modules = [AppModule(type=ty) for ty in self.DEFAULT_TYPES]
 

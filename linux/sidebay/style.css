@@ -28,6 +28,25 @@
 .sb-btn-glass:hover { background-color: rgba(255, 255, 255, 0.22); }
 .sb-btn-glass:active { background-color: rgba(255, 255, 255, 0.08); }
 
+/* 计算器运算符橙（1.0, 0.65, 0.2）与功能键灰 */
+.sb-calc-op {
+  background-color: rgba(255, 166, 51, 0.35);
+  border-radius: 9999px;
+  min-width: 28px;
+  min-height: 28px;
+}
+.sb-calc-op:hover { background-color: rgba(255, 166, 51, 0.55); }
+.sb-calc-op:active { background-color: rgba(255, 166, 51, 0.2); }
+
+.sb-calc-fn {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  min-width: 28px;
+  min-height: 28px;
+}
+.sb-calc-fn:hover { background-color: rgba(255, 255, 255, 0.22); }
+.sb-calc-fn:active { background-color: rgba(255, 255, 255, 0.08); }
+
 .sb-slider slider {
   background-color: rgba(255, 255, 255, 0.7);
   border-radius: 9999px;
@@ -56,6 +75,9 @@
 .sb-settings-close:hover { background-color: rgba(255, 59, 48, 1.0); }
 
 .sb-rounded { border-radius: 24px; }
+
+/* 边缘拖拽热区：透明即可，仅作为命中区 */
+.sb-edge-zone { background-color: transparent; }
 
 /* 股票涨跌色（GTK 4 无 override_color，由 CSS 类控制；须在 .sb-tick-label 之后定义） */
 .sb-stock-up { color: rgb(242, 77, 77); }

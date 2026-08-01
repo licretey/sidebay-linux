@@ -93,8 +93,13 @@ class SidebarWindow(Gtk.ApplicationWindow):
                 module = create_module(m.type, self.store, m.module_id, self._monitor)
             except ValueError:
                 continue
+            widget = module.build()
+            # 模块高度：height_pct > 0 时按侧边栏高度百分比，否则用 base._boxed 的 100px 默认
+            if m.height_pct and m.height_pct > 0:
+                window_height = self._workarea[3] if hasattr(self, "_workarea") else 100
+                widget.set_size_request(-1, int(m.height_pct / 100 * window_height))
             self._modules.append(module)
-            self._module_box.append(module.build())
+            self._module_box.append(widget)
 
     def _on_opacity_changed(self, scale: Gtk.Scale) -> None:
         value = scale.get_value()

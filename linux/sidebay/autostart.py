@@ -31,3 +31,8 @@ def set_autostart(enabled: bool, exec_line: str) -> None:
         return
     autostart_dir().mkdir(parents=True, exist_ok=True)
     path.write_text(autostart_content(exec_line))
+
+
+def autostart_enabled() -> bool:
+    """回读磁盘上真实的 autostart 文件状态。"""
+    return (autostart_dir() / DESKTOP_NAME).exists()
