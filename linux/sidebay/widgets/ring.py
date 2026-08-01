@@ -1,6 +1,6 @@
 """cairo 自绘环形仪表：分段圆弧插值模拟角度渐变 + 发光。"""
 
-from math import cos, pi, sin
+from math import tau
 
 import gi
 
@@ -17,6 +17,11 @@ def ring_segment_colors(base: tuple[float, float, float, float], n: int) -> list
         tuple(min(c * (0.4 + 0.6 * i / (n - 1)), 1.0) for c in base[:3]) + (base[3],)
         for i in range(n)
     ]
+
+
+def ring_arc_end(value: float) -> float:
+    """value 对应的弧终点角度：从顶部（-tau/4）起按 value/100 比例顺时针填充。"""
+    return tau * value / 100.0 - tau / 4
 
 
 class Ring(Gtk.DrawingArea):
@@ -37,8 +42,6 @@ class Ring(Gtk.DrawingArea):
         self.queue_draw()
 
     def _draw(self, area: Gtk.DrawingArea, cr, width: int, height: int) -> None:
-        from math import tau
-
         r = (min(width, height) - self._stroke) / 2.0
         cx, cy = width / 2.0, height / 2.0
         base = (self._color.red, self._color.green, self._color.blue, self._color.alpha)
@@ -52,7 +55,7 @@ class Ring(Gtk.DrawingArea):
         # 分段渐变弧
         n = 32
         colors = ring_segment_colors(base, n)
-        arc_end = tau * self._value / 100.0
+        arc_end = ring_arc_end(self._value)
         for i in range(n):
             a0 = (tau * i / n) - tau / 4
             a1 = a0 + tau / n
