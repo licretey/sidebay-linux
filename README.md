@@ -1,8 +1,8 @@
 # Sidebay Linux — 动态模块化侧边栏
 
-> **原仓库声明**：本项目源自 [linlinsunny/sidebay](https://github.com/linlinsunny/sidebay)（macOS 原生 SwiftUI 版）。
-> 本仓库为 **Linux/GNOME 移植实现**（Python + GTK4），原 macOS 代码保留在 `SideBarApp/` 目录，
-> 全部 Linux 实现位于 `linux/` 目录。感谢原作者的创意与设计。
+> **原仓库声明**：本项目源自 [linlinsunny/sidebay](https://github.com/linlinsunny/sidebay)（macOS 原生 SwiftUI 版，MIT 协议）。
+> 本仓库为 **Linux/GNOME 移植实现**（Python + GTK4），全部代码位于 `linux/` 目录，
+> 原 macOS 代码见原仓库。感谢原作者的创意与设计。
 
 <p align="center">
   <img src="linux-screenshot.png" width="138" />
@@ -132,8 +132,7 @@ flatpak run org.sidebay.SideBay              # 运行
 
 ```
 sidebay/
-├── SideBarApp/          # 原 macOS 版（Swift，未改动）
-├── linux/               # Linux 版（全部代码在此）
+└── linux/               # Linux 版（全部代码在此）
 │   ├── sidebay/
 │   │   ├── main.py      # 入口：自动选 XWayland、GSK_RENDERER=cairo
 │   │   ├── app.py       # Gtk.Application（单实例、设置窗口管理）

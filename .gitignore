@@ -5,3 +5,4 @@ SideBarApp.app.zip
 DerivedData/
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
+*.flatpak
