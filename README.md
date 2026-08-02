@@ -1,7 +1,7 @@
 # Sidebay Linux — 动态模块化侧边栏
 
 > **原仓库声明**：本项目源自 [linlinsunny/sidebay](https://github.com/linlinsunny/sidebay)（macOS 原生 SwiftUI 版，MIT 协议）。
-> 本仓库为 **Linux/GNOME 移植实现**（Python + GTK4），全部代码位于 `linux/` 目录，
+> 本仓库为 **Linux/GNOME 移植实现**（Python + GTK4），全部代码位于 `sidebay/` 目录，
 > 原 macOS 代码见原仓库。感谢原作者的创意与设计。
 
 <p align="center">
@@ -54,7 +54,6 @@ sudo apt install python3 python3-gi python3-gi-cairo gir1.2-gtk-4.0 xvfb uv
 ### 安装与运行
 
 ```bash
-cd linux
 uv venv --system-site-packages   # 首次：创建环境（gi 来自系统包，需 system-site-packages）
 uv sync                          # 安装依赖（pytest、python-xlib）
 ./run.sh                         # 启动
@@ -65,7 +64,6 @@ uv sync                          # 安装依赖（pytest、python-xlib）
 ### 测试
 
 ```bash
-cd linux
 uv run pytest                                # 全量测试（80 项）
 GDK_BACKEND=x11 xvfb-run -a uv run pytest    # 无显示器环境跑 UI 冒烟
 ```
@@ -73,7 +71,6 @@ GDK_BACKEND=x11 xvfb-run -a uv run pytest    # 无显示器环境跑 UI 冒烟
 ### Flatpak 构建安装
 
 ```bash
-cd linux
 ./install.sh                                 # flatpak-builder 构建并安装
 flatpak run org.sidebay.SideBay              # 运行
 ```
@@ -132,29 +129,28 @@ flatpak run org.sidebay.SideBay              # 运行
 
 ```
 sidebay/
-└── linux/               # Linux 版（全部代码在此）
-│   ├── sidebay/
-│   │   ├── main.py      # 入口：自动选 XWayland、GSK_RENDERER=cairo
-│   │   ├── app.py       # Gtk.Application（单实例、设置窗口管理）
-│   │   ├── window.py    # 侧边栏窗口：定位/贴边/长按手势/边缘拖宽
-│   │   ├── settings.py  # 设置窗口（自绘标签行）
-│   │   ├── store.py     # 配置持久化（JSON，XDG 路径）
-│   │   ├── monitor.py   # 系统采集（/proc、/sys 纯函数解析 + 采样类）
-│   │   ├── autostart.py # 开机自启
-│   │   ├── widgets/
-│   │   │   ├── ring.py  # cairo 环形仪表（角度渐变 + 中心文本）
-│   │   │   └── ...
-│   │   ├── modules/     # 11 个模块，统一 Module 接口
-│   │   │   ├── base.py  # 基类：build()/on_tick()/should_update() 频率节流
-│   │   │   ├── registry.py
-│   │   │   └── usage/network/fan/stock/countdown/stopwatch/calculator/keyboard.py
-│   │   └── style.css    # 深色玻璃质感样式
-│   ├── tests/           # 80 项 pytest（纯逻辑 + xvfb 冒烟）
-│   ├── logos/           # 应用图标（sidebay.png / sidebay-512.png）
-│   ├── org.sidebay.SideBay.json  # Flatpak manifest
-│   ├── org.sidebay.SideBay.desktop
-│   ├── run.sh / install.sh
-│   └── pyproject.toml   # uv 工程（dev 依赖组：pytest、python-xlib）
+├── sidebay/
+│   ├── main.py      # 入口：自动选 XWayland、GSK_RENDERER=cairo
+│   ├── app.py       # Gtk.Application（单实例、设置窗口管理）
+│   ├── window.py    # 侧边栏窗口：定位/贴边/长按手势/边缘拖宽
+│   ├── settings.py  # 设置窗口（自绘标签行）
+│   ├── store.py     # 配置持久化（JSON，XDG 路径）
+│   ├── monitor.py   # 系统采集（/proc、/sys 纯函数解析 + 采样类）
+│   ├── autostart.py # 开机自启
+│   ├── widgets/
+│   │   ├── ring.py  # cairo 环形仪表（角度渐变 + 中心文本）
+│   │   └── ...
+│   ├── modules/     # 11 个模块，统一 Module 接口
+│   │   ├── base.py  # 基类：build()/on_tick()/should_update() 频率节流
+│   │   ├── registry.py
+│   │   └── usage/network/fan/stock/countdown/stopwatch/calculator/keyboard.py
+│   └── style.css    # 深色玻璃质感样式
+├── tests/           # 80 项 pytest（纯逻辑 + xvfb 冒烟）
+├── logos/           # 应用图标（sidebay.png / sidebay-512.png）
+├── org.sidebay.SideBay.json  # Flatpak manifest
+├── org.sidebay.SideBay.desktop
+├── run.sh / install.sh
+├── pyproject.toml   # uv 工程（dev 依赖组：pytest、python-xlib）
 └── docs/superpowers/    # 设计文档与实施计划
 ```
 
@@ -172,7 +168,6 @@ sidebay/
 ### 开发流程
 
 ```bash
-cd linux
 uv run pytest                     # 改代码后全量测试
 ./run.sh                          # 手动验证
 uv run --no-sync sidebay          # 等价于 ./run.sh
@@ -180,7 +175,7 @@ uv run --no-sync sidebay          # 等价于 ./run.sh
 
 **添加新模块**（示例：假设新增「天气」）：
 
-1. `linux/sidebay/modules/weather.py`：继承 `Module`，实现 `build()` 与 `on_tick()`
+1. `sidebay/modules/weather.py`：继承 `Module`，实现 `build()` 与 `on_tick()`
 2. `registry.py`：`MODULE_TYPES` 加 `"Weather"`，`create_module` 加分支
 3. `window.py` `rebuild_modules` 的白名单加 `"Weather"`
 4. `i18n.py` 加 `"Weather"` 词条
@@ -222,7 +217,7 @@ A: Wayland 会话无法全局捕获按键（协议限制），X11/Xorg 会话下
 
 **Q: 开机自启不生效？**
 A: Flatpak 安装时自启写入的是宿主机的 `~/.config/autostart`，确认 `Exec` 行
-为 `flatpak run org.sidebay.SideBay`（`linux/README.md` 有说明）。
+为 `flatpak run org.sidebay.SideBay`。
 
 ---
 

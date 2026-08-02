@@ -18,6 +18,6 @@ def test_autostart_exec_line_host_uses_run_sh(monkeypatch):
 
     monkeypatch.delenv("FLATPAK_ID", raising=False)
     line = autostart_exec_line()
-    # 直接运行分支必须是仓库 linux/run.sh 的绝对路径（真实存在的文件）
-    assert line.endswith("/linux/run.sh")
+    # 直接运行分支必须是仓库 run.sh 的绝对路径（真实存在的文件）
+    assert line.endswith("/run.sh")
     assert Path(line).is_file()

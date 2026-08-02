@@ -24,3 +24,6 @@ package = true
 # pyproject support for system site packages was never implemented (astral-sh/uv#5737).
 # System site packages (gi) are enabled by creating the venv with
 # `uv venv --system-site-packages` before `uv sync`; uv sync preserves the flag.
+
+[tool.setuptools.packages.find]
+include = ["sidebay*"]

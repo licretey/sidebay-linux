@@ -6,3 +6,9 @@ DerivedData/
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
 *.flatpak
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+build/
+*.egg-info/
