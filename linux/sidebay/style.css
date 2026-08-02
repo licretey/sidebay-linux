@@ -103,3 +103,15 @@
   color: #ffffff;
   border-bottom: 2px solid rgba(255, 255, 255, 0.9);
 }
+
+/* 设置页原生风格关闭按钮（圆形 ×，悬停变红） */
+.sb-close-native {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  min-width: 22px;
+  min-height: 22px;
+  padding: 0;
+}
+.sb-close-native label { font-size: 11px; color: rgba(255, 255, 255, 0.85); }
+.sb-close-native:hover { background-color: rgba(255, 59, 48, 0.9); }
+.sb-close-native:hover label { color: #ffffff; }

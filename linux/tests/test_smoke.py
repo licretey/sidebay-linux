@@ -48,7 +48,7 @@ def test_settings_window_header_add_module_and_close_callback(tmp_path):
     while child is not None:
         flat.append(child.get_css_classes())
         child = child.get_next_sibling()
-    assert any("sb-settings-close" in c for c in flat), "close button in tab row"
+    assert any("sb-close-native" in c for c in flat), "native close button in tab row"
     assert any("sb-tab" in c for c in flat), "underline tab buttons in tab row"
     # 通过列表 API 路径添加模块：下拉选中 → 添加 → store.add → 重建列表
     before = len(store.modules)

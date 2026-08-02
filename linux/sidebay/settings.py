@@ -71,22 +71,29 @@ class SettingsWindow(Gtk.ApplicationWindow):
 
     def _build_tab_row(self) -> Gtk.Box:
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
-        # 无顶部标题条：关闭红点 + 下划线标签同一行；标签下划线即视觉分隔
+        # 无顶部标题条：下划线标签在左，关闭按钮在右（原生圆形 ×）
         row.set_margin_top(8)
         row.set_margin_bottom(2)
         row.set_margin_start(10)
         row.set_margin_end(10)
 
-        close = Gtk.Button()
-        close.add_css_class("sb-settings-close")
-        close.set_valign(Gtk.Align.CENTER)
-        close.connect("clicked", lambda *_: self.close())
-        row.append(close)
-
         self._tab_general = self._tab_button("通用", 0)
         self._tab_modules = self._tab_button("模块", 1)
+        # radio 互斥：激活一个自动取消另一个，只有激活标签显示下划线
+        self._tab_modules.set_group(self._tab_general)
         row.append(self._tab_general)
         row.append(self._tab_modules)
+
+        spacer = Gtk.Box()
+        spacer.set_hexpand(True)
+        row.append(spacer)
+
+        close = Gtk.Button()
+        close.add_css_class("sb-close-native")
+        close.set_valign(Gtk.Align.CENTER)
+        close.set_child(Gtk.Label(label="✕"))
+        close.connect("clicked", lambda *_: self.close())
+        row.append(close)
         return row
 
     def _tab_button(self, label: str, page: int) -> Gtk.Button:
@@ -99,9 +106,6 @@ class SettingsWindow(Gtk.ApplicationWindow):
     def _on_tab_toggled(self, button: Gtk.ToggleButton, page: int) -> None:
         if button.get_active():
             self._notebook.set_current_page(page)
-        else:
-            # 保持互斥：至少一个标签处于激活态
-            button.set_active(True)
 
     # ---------- 通用页 ----------
 
