@@ -174,6 +174,9 @@ class SettingsWindow(Gtk.ApplicationWindow):
         self._autostart_switch.set_valign(Gtk.Align.CENTER)
         self._autostart_switch.connect("state-set", self._on_autostart_toggled)
         page.append(self._row(t("Launch at Login", lang), self._autostart_switch))
+        # _row 默认给控件 hexpand，会把开关横向拉伸变形；改为自然宽度靠右
+        self._autostart_switch.set_hexpand(False)
+        self._autostart_switch.set_halign(Gtk.Align.END)
         return page
 
     @staticmethod
@@ -208,6 +211,9 @@ class SettingsWindow(Gtk.ApplicationWindow):
             return
         self.store.settings.width = float(value)
         self.store.save()
+        # 宽度独立即时生效（此前仅在高度变化/关闭设置时随 _apply_width 触发）
+        if self._on_style_change is not None:
+            self._on_style_change()
 
     def _on_autostart_toggled(self, switch: Gtk.Switch, state: bool) -> bool:
         try:
