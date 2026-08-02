@@ -130,6 +130,9 @@ class TrayIcon:
             "IconName": GLib.Variant("s", APP_ID),
             "IconPixmap": GLib.Variant("a(iiay)", self._pixmap),
             "Menu": GLib.Variant("o", MENU_PATH),
+            # 关键：ItemIsMenu=true 让主机把图标视为菜单项——左键直接弹菜单
+            # （否则主机走 Activate，而我们按用户要求左键无操作 → 点击无响应）
+            "ItemIsMenu": GLib.Variant("b", True),
         }
 
     @staticmethod
