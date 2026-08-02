@@ -208,7 +208,11 @@ class TrayIcon:
                 invocation.return_error_literal(
                     Gio.DBusError.NOT_SUPPORTED, f"unknown interface {iface}")
         except Exception as e:
-            invocation.return_error_literal(Gio.DBusError.FAILED, str(e))
+            # 若 invocation 已回复，再 return_error 会二次抛错导致循环堆栈
+            try:
+                invocation.return_error_literal(Gio.DBusError.FAILED, str(e))
+            except Exception:
+                pass
 
     def _on_properties(self, method, params, invocation) -> None:
         if method == "Get":
@@ -247,19 +251,27 @@ class TrayIcon:
             reply = GLib.Variant("(u(ia{sv}av))", (0, (0, {}, items)))
             invocation.return_value(reply)
         elif method == "GetGroupProperties":
-            # 返回空属性集即可（AppIndicator 会按需 GetProperty/GetLayout）
-            invocation.return_value(GLib.Variant("(a(ia{sv}))", ([])))
+            # 空数组必须显式构造（pygobject 对 () 列表的 a(ia{sv}) 会抛 TypeError）
+            empty = GLib.Variant.new_array(GLib.VariantType("(ia{sv})"), [])
+            invocation.return_value(GLib.Variant("(a(ia{sv}))", (empty,)))
         elif method == "GetProperty":
             invocation.return_value(GLib.Variant("(v)", (GLib.Variant("s", ""),)))
         elif method == "Event":
-            item_id = params[0] if params and params.get_n_children() > 0 else -1
-            if isinstance(item_id, int):
+            try:
+                item_id = int(params[0]) if params and params.get_n_children() > 0 else -1
+            except Exception:
+                item_id = -1
+            if item_id > 0:
                 self._on_menu_click(item_id)
             invocation.return_value(None)
         elif method in ("EventGroup", "AboutToShow", "AboutToShowGroup"):
-            invocation.return_value(GLib.Variant("(u)", (0,)) if method == "EventGroup"
-                                    else GLib.Variant("(b)", (True,)) if method == "AboutToShow"
-                                    else GLib.Variant("(ai)", ([],)))
+            if method == "EventGroup":
+                invocation.return_value(GLib.Variant("(u)", (0,)))
+            elif method == "AboutToShow":
+                invocation.return_value(GLib.Variant("(b)", (True,)))
+            else:
+                empty = GLib.Variant.new_array(GLib.VariantType("i"), [])
+                invocation.return_value(GLib.Variant("(ai)", (empty,)))
         else:
             invocation.return_error_literal(Gio.DBusError.NOT_SUPPORTED, method)
 
