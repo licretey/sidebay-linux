@@ -38,11 +38,18 @@ def test_settings_window_header_add_module_and_close_callback(tmp_path):
     # 窗口在 GTK 4.22 下偶发 gtk_window_set_application 段错误
     closed = []
     win = SettingsWindow(app, store, on_close_callback=lambda: closed.append(True))
-    # 自绘暗色头部存在（非 GNOME headerbar）
+    # 自绘标签行：关闭红点 + 下划线标签（非 GNOME headerbar）
     root = win.get_child()
     assert root is not None
-    header = root.get_first_child()
-    assert "sb-settings-header" in header.get_css_classes()
+    tab_row = root.get_first_child()
+    classes = [c.get_css_classes() for c in tab_row.observe_children()] if hasattr(tab_row, "observe_children") else []
+    flat = []
+    child = tab_row.get_first_child()
+    while child is not None:
+        flat.append(child.get_css_classes())
+        child = child.get_next_sibling()
+    assert any("sb-settings-close" in c for c in flat), "close button in tab row"
+    assert any("sb-tab" in c for c in flat), "underline tab buttons in tab row"
     # 通过列表 API 路径添加模块：下拉选中 → 添加 → store.add → 重建列表
     before = len(store.modules)
     win._type_dropdown.set_selected(2)  # Memory

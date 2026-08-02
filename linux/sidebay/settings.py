@@ -70,10 +70,10 @@ class SettingsWindow(Gtk.ApplicationWindow):
     # ---------- 标签行（关闭按钮 + 通用/模块，同一行） ----------
 
     def _build_tab_row(self) -> Gtk.Box:
-        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-        row.add_css_class("sb-settings-header")
-        row.set_margin_top(6)
-        row.set_margin_bottom(6)
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
+        # 无顶部标题条：关闭红点 + 下划线标签同一行；标签下划线即视觉分隔
+        row.set_margin_top(8)
+        row.set_margin_bottom(2)
         row.set_margin_start(10)
         row.set_margin_end(10)
 
