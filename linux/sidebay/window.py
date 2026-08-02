@@ -119,7 +119,9 @@ class SidebarWindow(Gtk.ApplicationWindow):
         gesture = Gtk.GestureClick(button=1)
         gesture.connect("pressed", self._on_press_start)
         gesture.connect("released", self._on_press_end)
-        gesture.connect("stopped", self._on_press_end)
+        gesture.connect("cancel", self._on_press_end)
+        # 注意：不监听 "stopped" —— GTK4 GestureClick 内置长按检测，
+        # 按住约 500ms 会提前发 stopped 结束本次点击，会误取消 1.5s 定时器
         self.add_controller(gesture)
 
     def _on_press_start(self, _gesture, _n, _x, _y) -> None:

@@ -342,3 +342,74 @@ def test_sidebar_scroller_expands_and_has_glass(tmp_path):
         assert scroller.get_vexpand(), "scroller must vexpand so modules are not clipped"
     finally:
         win.run_dispose()
+
+
+@pytest.mark.smoke
+def test_long_press_opens_settings(tmp_path):
+    """回归：按住侧边栏 1.5s 打开设置窗口（GTK4 GestureClick 内置长按检测
+    会提前发 stopped，不得用 stopped 取消定时器）。无 X11/XTEST 时跳过。"""
+    import os
+    import time
+
+    gi.require_version("Gtk", "4.0")
+    from gi.repository import GLib, Gtk
+
+    if not os.environ.get("DISPLAY"):
+        pytest.skip("no X display for synthetic events")
+
+    from Xlib import X, display as xd
+    from Xlib.ext import xtest
+
+    from sidebay.app import SidebayApplication
+    from sidebay.store import Store
+    from sidebay.window import SidebarWindow
+
+    # 不 register（同进程内其他测试已导出同一 application_id 的 D-Bus 对象，
+    # 且未注册时 activate_action 无法解析 "app." 动作）。
+    # 因此只验证 手势→定时器→_on_long_press 链路，动作调用本身由他处覆盖。
+    fired = []
+    orig_long_press = SidebarWindow._on_long_press
+
+    def patched_long_press(self):
+        fired.append(True)
+        return False
+
+    SidebarWindow._on_long_press = patched_long_press
+    app = SidebayApplication(store=Store(path=str(tmp_path / "c.json")))
+    win = app.create_window()
+    win.present()
+    try:
+        # 等待映射并让事件循环跑起来
+        for _ in range(20):
+            while GLib.MainContext.default().iteration(False):
+                pass
+            time.sleep(0.05)
+
+        d = xd.Display()
+        from gi.repository import GdkX11
+        native = win.get_native()
+        surf = native.get_surface()
+        xid = surf.get_xid()
+        g = d.create_resource_object("window", xid).get_geometry()
+        root = d.screen().root
+        tx, ty = g.x + g.width // 2, g.y + 300
+        root.warp_pointer(tx, ty)
+        d.sync()
+        xtest.fake_input(d, X.ButtonPress, 1)
+        d.sync()
+        # 按住 1.8s > 1.5s 阈值
+        end = time.monotonic() + 1.8
+        while time.monotonic() < end:
+            while GLib.MainContext.default().iteration(False):
+                pass
+            time.sleep(0.05)
+        xtest.fake_input(d, X.ButtonRelease, 1)
+        d.sync()
+        for _ in range(10):
+            while GLib.MainContext.default().iteration(False):
+                pass
+            time.sleep(0.05)
+        assert fired, "long-press should trigger _on_long_press after 1.5s hold"
+    finally:
+        SidebarWindow._on_long_press = orig_long_press
+        win.run_dispose()
