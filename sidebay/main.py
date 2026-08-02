@@ -1,12 +1,29 @@
 """Sidebay Linux 入口：python3 -m sidebay"""
 
+import ctypes
 import os
 import sys
+
+
+def _set_process_name(name: str = "sidebay") -> None:
+    """进程名改为 sidebay 开头（prctl PR_SET_NAME=15，限 15 字符），
+    便于 ps/top/脚本识别；argv[0] 同步修改以影响 cmdline 显示。"""
+    try:
+        libc = ctypes.CDLL(None)
+        libc.prctl(15, ctypes.c_char_p(name.encode()[:15]), 0, 0, 0)
+    except Exception:
+        pass
+    try:
+        sys.argv[0] = name
+    except Exception:
+        pass
+
 
 from sidebay.app import SidebayApplication
 
 
 def main() -> int:
+    _set_process_name("sidebay")
     # 内存验收：GTK 4 默认 GL 渲染器在无 GPU 环境（Xvfb/llvmpipe）会加载
     # libLLVM + NVIDIA 编译栈，空闲 RSS 约 270MB；cairo 渲染器约 95MB 且视觉一致。
     # 用户可用环境变量 GSK_RENDERER 覆盖。
