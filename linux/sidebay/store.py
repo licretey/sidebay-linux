@@ -23,8 +23,11 @@ class Settings:
     language: str = "zh"
     launch_at_login: bool = False
     # 手动定位：pos_x/pos_y 为 None 时维持贴边行为；设置后窗口左上角定位到该坐标
+    # （GNOME Wayland 下 XWayland 窗口的 Y 由合成器管理，垂直位置固定顶部）
     pos_x: float | None = None
     pos_y: float | None = None
+    # 窗口高度：None = 全屏高度；设置后窗口为指定高度（内容滚动）
+    height: float | None = None
     # 样式：字号 small/medium/large；字体族空串 = 系统默认
     font_size: str = "medium"
     font_family: str = ""

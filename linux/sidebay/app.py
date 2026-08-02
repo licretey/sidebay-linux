@@ -69,7 +69,8 @@ class SidebayApplication(Gtk.Application):
                 (lambda x, y: self.window.apply_position_xy(x, y)) if self.window else None
             ),
             on_style_change=(
-                (lambda: (self.window.apply_font_style(), self.window._apply_opacity()))
+                (lambda: (self.window.apply_font_style(), self.window._apply_opacity(),
+                          self.window._apply_width()))
                 if self.window else None
             ),
         )

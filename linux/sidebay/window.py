@@ -172,7 +172,8 @@ class SidebarWindow(Gtk.ApplicationWindow):
             widget = module.build()
             # 模块高度：height_pct > 0 时按侧边栏高度百分比，否则用 base._boxed 的 100px 默认
             if m.height_pct and m.height_pct > 0:
-                window_height = self._workarea[3] if hasattr(self, "_workarea") else 100
+                work_h = self._workarea[3] if hasattr(self, "_workarea") else 100
+                window_height = self.store.settings.height or work_h
                 widget.set_size_request(-1, int(m.height_pct / 100 * window_height))
             self._modules.append(module)
             self._module_box.append(widget)
@@ -203,6 +204,8 @@ class SidebarWindow(Gtk.ApplicationWindow):
             return
         _, y, w, h = self._workarea
         width = int(self.store.settings.width) if self.store.settings.width > 0 else int(w / 20)
+        if self.store.settings.height is not None:
+            h = int(self.store.settings.height)  # 手动高度：内容滚动
         self.set_default_size(width, h)
         # GTK 4.22 移除了 gtk_window_resize/gtk_window_move；有该 API 时再调用
         if hasattr(self, "resize"):

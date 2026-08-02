@@ -121,7 +121,7 @@ class SettingsWindow(Gtk.ApplicationWindow):
 
         # 手动位置 X / Y（左上角坐标；实时移动窗口）
         xy_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        self._pos_x_spin = Gtk.SpinButton.new_with_range(0, 4096, 1)
+        self._pos_x_spin = Gtk.SpinButton.new_with_range(0, 8192, 1)
         self._pos_x_spin.set_value(self.store.settings.pos_x or 0)
         self._pos_x_spin.set_width_chars(5)
         self._pos_x_spin.connect("value-changed", self._on_pos_x_changed)
@@ -131,7 +131,19 @@ class SettingsWindow(Gtk.ApplicationWindow):
         self._pos_y_spin.set_width_chars(5)
         self._pos_y_spin.connect("value-changed", self._on_pos_y_changed)
         xy_box.append(self._pos_y_spin)
+        # GNOME Wayland 下 XWayland 窗口的 Y 由合成器管理（固定顶部），提示用户
+        y_hint = Gtk.Label(label="(Wayland 下 Y 固定顶部)")
+        y_hint.add_css_class("sb-tick-label")
+        y_hint.set_opacity(0.6)
+        xy_box.append(y_hint)
         page.append(self._row(t("Position", lang) + " X/Y", xy_box))
+
+        # 窗口高度（None = 全屏高度；设置后为短条，内容滚动）
+        self._height_spin = Gtk.SpinButton.new_with_range(100, 4096, 10)
+        self._height_spin.set_value(self.store.settings.height or 1440)
+        self._height_spin.set_width_chars(5)
+        self._height_spin.connect("value-changed", self._on_height_changed)
+        page.append(self._row("高度", self._height_spin))
 
         # 字号
         self._font_size_dropdown = Gtk.DropDown(model=Gtk.StringList.new([s for s, _ in _FONT_SIZES]))
@@ -218,6 +230,12 @@ class SettingsWindow(Gtk.ApplicationWindow):
         self.store.save()
         if self._on_position_change is not None and self.store.settings.pos_x is not None:
             self._on_position_change(self.store.settings.pos_x, self.store.settings.pos_y)
+
+    def _on_height_changed(self, spin: Gtk.SpinButton) -> None:
+        self.store.settings.height = float(spin.get_value())
+        self.store.save()
+        if self._on_style_change is not None:
+            self._on_style_change()
 
     def _on_font_size_changed(self, dropdown: Gtk.DropDown, _pspec) -> None:
         _, value = _FONT_SIZES[dropdown.get_selected()]

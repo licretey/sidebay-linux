@@ -116,6 +116,7 @@ def test_settings_new_fields_roundtrip(tmp_path):
     s1.settings.pos_y = 80.0
     s1.settings.font_size = "large"
     s1.settings.font_family = "Cantarell"
+    s1.settings.height = 600.0
     s1.save()
     s2 = Store(path=path)
     s2.load()
@@ -123,6 +124,7 @@ def test_settings_new_fields_roundtrip(tmp_path):
     assert s2.settings.pos_y == 80.0
     assert s2.settings.font_size == "large"
     assert s2.settings.font_family == "Cantarell"
+    assert s2.settings.height == 600.0
 
 
 def test_settings_new_fields_defaults(tmp_path):
@@ -134,4 +136,5 @@ def test_settings_new_fields_defaults(tmp_path):
     assert s.settings.pos_x is None
     assert s.settings.pos_y is None
     assert s.settings.font_size == "medium"
+    assert s.settings.height is None
     assert s.settings.font_family == ""
