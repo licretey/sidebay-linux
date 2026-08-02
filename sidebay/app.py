@@ -110,6 +110,11 @@ class SidebayApplication(Gtk.Application):
 
     def create_window(self) -> SidebarWindow:
         self.window = SidebarWindow(self, self.store)
+        # 先在映射前完成 realize 并应用历史位置（XMoveResizeWindow），
+        # 再 present——Mutter 对映射前已有位置请求的 X11 窗口会尊重，
+        # 避免「先渲染在中间再跳过去」的闪现
+        self.window.realize()
+        self.window._apply_width()
         self.window.present()
         self._register_settings_action()
         return self.window

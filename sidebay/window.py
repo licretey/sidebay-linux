@@ -36,6 +36,7 @@ class SidebarWindow(Gtk.ApplicationWindow):
             self.set_icon_name("org.sidebay.SideBay")
 
         self._module_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        self._module_box.set_margin_top(10)  # 第一个监控项顶部留白
         scroller = Gtk.ScrolledWindow()
         scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroller.set_child(self._module_box)

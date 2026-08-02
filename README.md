@@ -196,7 +196,7 @@ uv run --no-sync sidebay          # 等价于 ./run.sh
 | Wayland 置顶 | GNOME Wayland 无 keep-above，全屏窗口会盖住侧边栏（X11 会话正常） |
 | 键盘监视 | 仅 X11 会话可用（XRecord）；Wayland 显示「无权限」 |
 | 背景模糊 | GNOME Wayland 无窗口模糊 API，玻璃效果为半透明模拟 |
-| GPU 采集 | Flatpak 沙盒内读不到 sysfs/nvidia-smi → 显示 0（本地运行正常） |
+| GPU 采集 | Flatpak 内：amd/intel 可读 sysfs（正常）；**nvidia 需 nvidia-smi 二进制（沙盒内无）→ 显示 0**——本地运行（./run.sh）nvidia 正常 |
 | 垂直定位 | XWayland 下 Y 可移动；全高窗口下移会被系统钳回顶部（配高度控件解决） |
 | V2 模块 | Mirror（摄像头）、录屏、远程服务器监控暂未移植 |
 
