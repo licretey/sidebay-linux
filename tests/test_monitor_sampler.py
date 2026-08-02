@@ -56,3 +56,19 @@ def test_tick_fallback_no_fan_no_gpu(tmp_path, monkeypatch):
     assert stats.gpu == 0.0
     assert stats.fan_rpm >= 1800 - 50  # 模拟公式下限
     assert stats.fan_rpm <= (1800 + 4200) + 50
+
+
+def test_tick_performance():
+    """60 次 tick 总耗时 < 50ms 性能回归防线。
+
+    本机 nvidia-smi 存在时每 3s fork 一次（~1ms）；60 tick 实测 ~30ms。
+    """
+    import time
+
+    m = SystemMonitor()
+    m.tick()
+    t0 = time.perf_counter()
+    for _ in range(60):
+        m.tick()
+    elapsed = time.perf_counter() - t0
+    assert elapsed < 0.05, f"60 ticks took {elapsed:.3f}s"
