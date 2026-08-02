@@ -1,81 +1,233 @@
-# Sidebay - macOS 动态侧边栏组件工具箱
-# Sidebay - Dynamic Modular Sidebar for macOS
+# Sidebay Linux — 动态模块化侧边栏
 
-![Language](https://img.shields.io/badge/Language-Swift-orange.svg)
-![Platform](https://img.shields.io/badge/Platform-macOS-lightgrey.svg)
-![License](https://img.shields.io/badge/License-MIT-blue.svg)
-
----
-
-## 📸 Screenshots / 截图
+> **原仓库声明**：本项目源自 [linlinsunny/sidebay](https://github.com/linlinsunny/sidebay)（macOS 原生 SwiftUI 版）。
+> 本仓库为 **Linux/GNOME 移植实现**（Python + GTK4），原 macOS 代码保留在 `SideBarApp/` 目录，
+> 全部 Linux 实现位于 `linux/` 目录。感谢原作者的创意与设计。
 
 <p align="center">
-  <img src="screenshot_1.png" width="300" />
-  <img src="screenshot_2.png" width="300" />
-  <img src="screenshot_3.png" width="300" />
+  <img src="linux-screenshot.png" width="175" />
 </p>
 
-## 🆕 Recent Updates / 最新更新
-
-- **后台设置界面升级 (Settings UI Overhaul)**: 采用 macOS 原生 TabView 设计，将“通用”与“模块”设置分离，彻底解决了模块过多时显示不全的问题，并提升了整体美观度。
-- **Settings UI Overhaul**: Redesigned the backend settings with a native macOS TabView, separating "General" and "Modules" options for better visibility and a cleaner aesthetic.
+**Sidebay** 是一款无边框、悬浮式、深色玻璃质感的模块化侧边栏小工具。它贴合屏幕边缘
+（或自由定位），实时显示系统状态与常用小工具，完全可自定义。
 
 ---
 
-## 🇨🇳 中文说明
+## ✨ 特性一览
 
-**Sidebay** 是一款专为 macOS 设计的无边框、悬浮式、高颜值侧边栏小工具集合。它贴合在屏幕边缘，完全不占用你的 Dock 栏，并且拥有极致的半透明毛玻璃视觉体验。
-
-### ✨ 核心特性
-
-- **模块化自由定制**：你可以通过设置后台（点击侧边栏底部的⚙️图标），自由添加、删除、以及上下拖拽排序所有的功能模块。
-- **动态宽度与透明度**：鼠标悬停在侧边栏右边缘即可通过拖拽改变宽度。底部自带透明度滑块，背景毛玻璃效果随心调。
-- **无感沉浸体验**：作为一个系统级的辅助应用 (Accessory App)，它不会在 Dock 栏出现，关闭设置后台也不会退出程序。
-
-### 📦 内置模块大全
-
-- **系统监视器 (CPU / GPU / RAM / Disk)**：带有光影和角度渐变的炫酷环形进度条，实时显示系统硬件资源占用。
-- **网络流速 (Network)**：上下行网速实时监控。
-- **风扇状态 (Fan)**：平滑旋转的炫酷风扇图标与模拟系统转速。
-- **自选股看板 (Stock)**：支持同时添加无限个股票模块。双击即可输入股票代码（如 `sh000001`, `sz002594`），实时获取腾讯财经最新行情。
-- **时间管理 (Countdown / Stopwatch)**：番茄钟倒计时与精密秒表。双击倒计时数字可自定义时长。
-- **微型计算器 (Calculator)**：专为狭长侧边栏设计的 4x5 极简科学计算器，日常算数无需打开主程序。
-- **全局键盘监视器 (Keyboard)**：实时显示你按下的快捷键组合（如 `⌘ ⇧ A`），非常适合教学录屏。
-- **录屏快开 (Screen Record)**：一键呼出 macOS 自带的原生截屏与录屏工具。
-
-### 🚀 如何使用
-
-1. 确保安装了最新版本的 Xcode 或 Swift 命令行工具。
-2. 在项目根目录运行 `./build.sh` 编译应用。
-3. 双击 `SideBarApp.app` 运行。
-4. **键盘监视器注意**：如果你添加了 `Keyboard` 模块，请前往 macOS 的 `系统设置 -> 隐私与安全性 -> 辅助功能`，为你运行该程序的终端（如 Terminal）开启辅助功能权限。
+- **11 个内置模块**：CPU / GPU / 内存 / 磁盘 环形仪表（百分比绘制在环心）、网络上下行、
+  风扇、自选股（腾讯行情）、番茄钟倒计时、秒表、极简计算器、键盘监视
+- **深色玻璃质感**：统一纯色玻璃背景 + 渐变描边 + 投影，无任何 GNOME 原生菜单栏/标题栏
+- **自由定位**：设置页 X/Y 坐标实时移动窗口（含垂直 Y），支持任意屏幕位置
+- **样式控制**：字号（小/中/大）、字体族、背景透明度、窗口宽度/高度均可调
+- **模块管理**：长按侧边栏进入设置，增删模块、拖拽排序、逐模块高度与**采集频率**（1s~60m）
+- **双语界面**：中文 / English
+- **低资源占用**：空闲 RSS ≈ 93MB，`/proc` 读取微秒级，GPU 查询自动节流
+- **Flatpak 打包**：一键构建安装，含应用图标与启动器
 
 ---
 
-## 🇺🇸 English Documentation
+## 🖥️ 与原版的差异（Linux 移植说明）
 
-**Sidebay** is a borderless, floating, aesthetically pleasing modular sidebar utility for macOS. It sticks seamlessly to the edge of your screen without occupying space in your Dock, featuring a stunning translucent frosted-glass visual experience.
+| 维度 | macOS 原版 | Linux 版 |
+|---|---|---|
+| 技术栈 | SwiftUI + AppKit | Python 3.10+ + GTK 4（PyGObject） |
+| 窗口 | NSPanel 贴边悬浮 | 无装饰 GTK 窗口；XWayland/X11 下 X/Y 自由定位 |
+| 毛玻璃 | NSVisualEffectView（真实模糊） | 纯色半透明玻璃（GNOME Wayland 无窗口模糊） |
+| 硬件采集 | mach / IOKit / SMC | /proc、/sys、statvfs、nvidia-smi |
+| 键盘监视 | CGEvent 全局捕获 | X11 XRecord（Wayland 下显示无权限） |
+| 模块 | 13 个 | 11 个（Mirror 摄像头、录屏、远程服务器为 V2） |
+| 打包 | .app bundle | uv 工程 + Flatpak |
 
-### ✨ Core Features
+---
 
-- **Modular & Customizable**: Access the Settings panel (via the ⚙️ icon at the bottom) to freely add, remove, or drag-and-drop to reorder all functional modules.
-- **Dynamic Width & Opacity**: Hover over the right edge to drag and resize the sidebar. Use the bottom slider to instantly adjust the frosted-glass opacity.
-- **Immersive Accessory App**: Runs as a pure system accessory. It won't clutter your Dock, and closing the settings window will safely keep the sidebar running in the background.
+## 📦 快速开始
 
-### 📦 Built-in Modules
+### 系统依赖（Ubuntu/Debian 示例）
 
-- **System Monitors (CPU / GPU / RAM / Disk)**: Sleek circular progress rings with angular gradients and subtle drop shadows indicating real-time hardware usage.
-- **Network Speed**: Real-time upload and download tracking.
-- **Fan Status**: A smoothly rotating fan icon alongside RPM metrics.
-- **Stock Trackers**: Add as many stock modules as you like! Double-click to input ticker symbols (e.g., `sh000001`, `AAPL` if supported by Tencent API) for live market data.
-- **Time Management (Countdown / Stopwatch)**: Pomodoro countdowns and precision stopwatches. Double-click the countdown to set custom minutes.
-- **Mini Calculator**: A 4x5 minimalist calculator perfectly scaled for the narrow sidebar. Do quick math without opening another app.
-- **Global Keyboard Monitor**: Displays your live keystrokes and modifier combos (e.g., `⌘ ⇧ A`). Perfect for tutorials and screen recordings.
-- **Screen Record Launcher**: One-click launch for macOS's native screenshot and recording tool.
+```bash
+sudo apt install python3 python3-gi python3-gi-cairo gir1.2-gtk-4.0 xvfb uv
+```
 
-### 🚀 How to Run
+> 其他发行版安装 `python3-gobject`、`gtk4`、`uv` 对应包即可。
 
-1. Ensure you have the latest version of Xcode or Swift command-line tools installed.
-2. Run `./build.sh` in the project root to compile the application.
-3. Double-click `SideBarApp.app` to launch.
-4. **Keyboard Monitor Note**: To use the `Keyboard` module, you MUST grant Accessibility permissions. Go to `System Settings -> Privacy & Security -> Accessibility` and check the box for the terminal application you used to launch the app.
+### 安装与运行
+
+```bash
+cd linux
+uv venv --system-site-packages   # 首次：创建环境（gi 来自系统包，需 system-site-packages）
+uv sync                          # 安装依赖（pytest、python-xlib）
+./run.sh                         # 启动
+```
+
+> `./run.sh` 首次运行会自动完成上述两步；Wayland 会话下自动走 XWayland 以获得完整定位能力。
+
+### 测试
+
+```bash
+cd linux
+uv run pytest                                # 全量测试（80 项）
+GDK_BACKEND=x11 xvfb-run -a uv run pytest    # 无显示器环境跑 UI 冒烟
+```
+
+### Flatpak 构建安装
+
+```bash
+cd linux
+./install.sh                                 # flatpak-builder 构建并安装
+flatpak run org.sidebay.SideBay              # 运行
+```
+
+---
+
+## 🎮 使用教程
+
+### 1. 打开设置页
+
+- **长按侧边栏任意位置约 1.5 秒** → 弹出设置窗口
+- 或右键侧边栏 → 「后台设置」
+
+### 2. 设置页详解
+
+**通用页**
+
+| 控件 | 说明 |
+|---|---|
+| 语言 | 中文 / English 即时切换 |
+| 位置 | 左 / 右贴边（与 X/Y 坐标二选一使用） |
+| 宽度 | 侧边栏宽度 40-300px，**实时生效** |
+| X/Y | 窗口左上角坐标，**实时移动**（任意位置；配合高度控件可摆到屏幕任意处） |
+| 高度 | 窗口高度（设短后内容滚动，且 Y 坐标可自由移动） |
+| 字号 / 字体 | 小/中/大 × 6 种字体族，即时生效 |
+| 透明度 | 背景透明度 0.1-1.0 |
+| 随系统启动 | 写入 `~/.config/autostart/sidebay.desktop` |
+
+**模块页**
+
+- **添加**：底部下拉选择模块类型 → 「添加」
+- **删除**：行尾 🗑
+- **排序**：按住行首 `⋮⋮` 拖拽
+- **高度百分比**：行内数字框（0 = 默认 100px）
+- **采集频率**：行内下拉 **1s / 2s / 5s / 10s / 10m / 20m / 60m** —— 低频监控项可大幅降低开销
+- **股票代码**：股票行内输入框直接改代码（如 `sh000001`、`sz002594`）
+
+### 3. 模块使用
+
+| 模块 | 交互 |
+|---|---|
+| CPU/GPU/内存/磁盘 | 环形仪表，百分比在环心；颜色区分（蓝/紫/橙/棕） |
+| 网络 | ▲ 上传（绿）▼ 下载（蓝），自动单位 B/KB/MB/s |
+| 风扇 | 扇叶随 RPM 旋转；无真实传感器时按负载模拟 |
+| 股票 | 双击价格进入编辑，回车提交；涨红跌绿 |
+| 倒计时 | 双击数字设分钟；▶/⏸ 播放暂停，↺ 重置（默认 25 分钟） |
+| 秒表 | ▶/⏸ 计时，⏹ 清零 |
+| 计算器 | 4×5 极简计算器，支持 ± % 与四则运算 |
+| 键盘监视 | X11 会话全局显示按键组合；Wayland 下显示「无辅助功能权限」 |
+
+---
+
+## 🛠️ 开发指南
+
+### 项目结构
+
+```
+sidebay/
+├── SideBarApp/          # 原 macOS 版（Swift，未改动）
+├── linux/               # Linux 版（全部代码在此）
+│   ├── sidebay/
+│   │   ├── main.py      # 入口：自动选 XWayland、GSK_RENDERER=cairo
+│   │   ├── app.py       # Gtk.Application（单实例、设置窗口管理）
+│   │   ├── window.py    # 侧边栏窗口：定位/贴边/长按手势/边缘拖宽
+│   │   ├── settings.py  # 设置窗口（自绘标签行）
+│   │   ├── store.py     # 配置持久化（JSON，XDG 路径）
+│   │   ├── monitor.py   # 系统采集（/proc、/sys 纯函数解析 + 采样类）
+│   │   ├── autostart.py # 开机自启
+│   │   ├── widgets/
+│   │   │   ├── ring.py  # cairo 环形仪表（角度渐变 + 中心文本）
+│   │   │   └── ...
+│   │   ├── modules/     # 11 个模块，统一 Module 接口
+│   │   │   ├── base.py  # 基类：build()/on_tick()/should_update() 频率节流
+│   │   │   ├── registry.py
+│   │   │   └── usage/network/fan/stock/countdown/stopwatch/calculator/keyboard.py
+│   │   └── style.css    # 深色玻璃质感样式
+│   ├── tests/           # 80 项 pytest（纯逻辑 + xvfb 冒烟）
+│   ├── logos/           # 应用图标（sidebay.png / sidebay-512.png）
+│   ├── org.sidebay.SideBay.json  # Flatpak manifest
+│   ├── org.sidebay.SideBay.desktop
+│   ├── run.sh / install.sh
+│   └── pyproject.toml   # uv 工程（dev 依赖组：pytest、python-xlib）
+└── docs/superpowers/    # 设计文档与实施计划
+```
+
+### 架构要点
+
+- **数据流**：`SystemMonitor.tick()`（1s）→ 各模块 `on_tick()` → UI 更新；
+  模块频率经 `should_update()` 节流，低频模块不做事
+- **采集语义对齐标准工具**：CPU 的 idle 含 iowait、guest 不双计（与 htop 一致）；
+  内存 = total − MemAvailable（与 `free` 一致）；磁盘百分比用 df 公式；
+  网络 up=发送(tx)、down=接收(rx)，排除虚拟/隧道接口
+- **定位策略**：XWayland/X11 下 `XMoveResizeWindow` 定位（Mutter 初始放置期
+  自动重试 500ms/2s/5s）；设置页 X/Y 实时移动
+- **UI 无原生控件**：全部窗口 `set_decorated(False)`，标签行/关闭按钮/滑块均自绘样式
+
+### 开发流程
+
+```bash
+cd linux
+uv run pytest                     # 改代码后全量测试
+./run.sh                          # 手动验证
+uv run --no-sync sidebay          # 等价于 ./run.sh
+```
+
+**添加新模块**（示例：假设新增「天气」）：
+
+1. `linux/sidebay/modules/weather.py`：继承 `Module`，实现 `build()` 与 `on_tick()`
+2. `registry.py`：`MODULE_TYPES` 加 `"Weather"`，`create_module` 加分支
+3. `window.py` `rebuild_modules` 的白名单加 `"Weather"`
+4. `i18n.py` 加 `"Weather"` 词条
+5. 补测试（纯逻辑部分 pytest，UI 挂载进冒烟）
+
+### 性能与内存
+
+- 空闲 RSS ≈ 93MB（GSK_RENDERER=cairo 渲染器；GL 在无 GPU 环境可达 270MB）
+- `/proc` 采样微秒级；nvidia-smi 自动节流 ≥3s
+- 低功耗用法：监控模块频率设 5s~60m
+
+---
+
+## ⚠️ 已知限制
+
+| 限制 | 说明 |
+|---|---|
+| Wayland 置顶 | GNOME Wayland 无 keep-above，全屏窗口会盖住侧边栏（X11 会话正常） |
+| 键盘监视 | 仅 X11 会话可用（XRecord）；Wayland 显示「无权限」 |
+| 背景模糊 | GNOME Wayland 无窗口模糊 API，玻璃效果为半透明模拟 |
+| GPU 采集 | Flatpak 沙盒内读不到 sysfs/nvidia-smi → 显示 0（本地运行正常） |
+| 垂直定位 | XWayland 下 Y 可移动；全高窗口下移会被系统钳回顶部（配高度控件解决） |
+| V2 模块 | Mirror（摄像头）、录屏、远程服务器监控暂未移植 |
+
+---
+
+## ❓ 常见问题
+
+**Q: CPU 数值和其他工具对不上？**
+A: 已对齐标准语义（htop/gnome-system-monitor）：idle 含 iowait、guest 不双计。
+1 秒采样有瞬时波动属正常，长窗口工具（top 平均）会略有差异。
+
+**Q: 窗口不能移动 / Y 坐标无效？**
+A: 确认 `./run.sh` 启动（自动 XWayland）；若手动设了 `GDK_BACKEND=wayland`
+则无法定位。Y 移动需先设一个小于屏幕的高度。
+
+**Q: 键盘监视显示无权限？**
+A: Wayland 会话无法全局捕获按键（协议限制），X11/Xorg 会话下自动可用。
+
+**Q: 开机自启不生效？**
+A: Flatpak 安装时自启写入的是宿主机的 `~/.config/autostart`，确认 `Exec` 行
+为 `flatpak run org.sidebay.SideBay`（`linux/README.md` 有说明）。
+
+---
+
+## 📄 许可
+
+MIT License（沿用原仓库）。macOS 原版版权归 [linlinsunny](https://github.com/linlinsunny) 所有；
+Linux 移植实现版权归本仓库作者。
