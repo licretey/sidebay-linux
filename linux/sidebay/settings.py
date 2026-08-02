@@ -131,11 +131,11 @@ class SettingsWindow(Gtk.ApplicationWindow):
         self._pos_y_spin.set_width_chars(5)
         self._pos_y_spin.connect("value-changed", self._on_pos_y_changed)
         xy_box.append(self._pos_y_spin)
-        # 提示：Y 坐标在 GNOME Wayland 下需安装定位扩展（install-extension.sh）
-        y_hint = Gtk.Label(label="(Y 需定位扩展)")
+        # 提示：默认（自动 XWayland）下 X/Y 均可移动；仅强制原生 Wayland 时 Y 不可用
+        y_hint = Gtk.Label(label="(X/Y 实时移动)")
         y_hint.add_css_class("sb-tick-label")
         y_hint.set_opacity(0.6)
-        y_hint.set_tooltip_text("GNOME Wayland 下 Y 坐标需安装 Sidebay 定位扩展：./install-extension.sh")
+        y_hint.set_tooltip_text("默认自动走 XWayland，X/Y 均可移动。仅当强制原生 Wayland（GDK_BACKEND=wayland）时垂直位置由系统管理")
         xy_box.append(y_hint)
         page.append(self._row(t("Position", lang) + " X/Y", xy_box))
 

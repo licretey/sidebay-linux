@@ -72,11 +72,15 @@ class SidebarWindow(Gtk.ApplicationWindow):
         self.connect("destroy", self._on_window_destroy)
         # realize 后 surface 才可用：此时再跑一次贴边逻辑（含 X11 XMoveResizeWindow）
         self.connect("realize", lambda *_: self._apply_width())
-        # map 后合成器可能覆盖初始放置（GNOME 会重新摆放新窗口）：
-        # 延迟 500ms 再贴一次边，确保最终位置正确
-        self.connect("map", lambda *_: GLib.timeout_add(500, self._redock_once))
+        # map 后合成器（Mutter）的初始放置会持续约数秒，期间移动会被覆盖：
+        # 在 500ms/2s/5s 各重试一次定位，确保最终位置（贴边或手动坐标）落位
+        self.connect("map", self._schedule_redock)
         self._build_context_menu()
         self._build_long_press()
+
+    def _schedule_redock(self, *_a) -> None:
+        for delay in (500, 2000, 5000):
+            GLib.timeout_add(delay, self._redock_once)
 
     def _redock_once(self) -> bool:
         self._apply_width()
