@@ -1,0 +1,65 @@
+{
+  "modules": [
+    {
+      "module_id": "33678562-a040-4d8c-9c58-7907e84cd2b7",
+      "type": "CPU",
+      "custom_data": "",
+      "height_pct": null,
+      "refresh_interval": null
+    },
+    {
+      "module_id": "e1f89252-1bca-4c95-b383-ea1485c8b623",
+      "type": "GPU",
+      "custom_data": "",
+      "height_pct": null,
+      "refresh_interval": null
+    },
+    {
+      "module_id": "d1d59f1d-3927-44c9-a0ae-edff92a14a5e",
+      "type": "Memory",
+      "custom_data": "",
+      "height_pct": null,
+      "refresh_interval": null
+    },
+    {
+      "module_id": "e2ba49a3-d6a3-4f2c-9681-d62a7196a6a1",
+      "type": "Disk",
+      "custom_data": "",
+      "height_pct": null,
+      "refresh_interval": null
+    },
+    {
+      "module_id": "2de51c77-922e-4125-bc29-cd85f56b9121",
+      "type": "Fan",
+      "custom_data": "",
+      "height_pct": null,
+      "refresh_interval": null
+    },
+    {
+      "module_id": "2f7cbbfd-03f6-4940-81ae-970b4cd9520b",
+      "type": "Network",
+      "custom_data": "",
+      "height_pct": null,
+      "refresh_interval": null
+    },
+    {
+      "module_id": "9690e399-9385-4ec8-805c-326b0e5670d0",
+      "type": "Stock",
+      "custom_data": "",
+      "height_pct": null,
+      "refresh_interval": null
+    }
+  ],
+  "settings": {
+    "position": "left",
+    "width": 95.0,
+    "opacity": 0.8590361445783133,
+    "language": "zh",
+    "launch_at_login": false,
+    "pos_x": 60.0,
+    "pos_y": 200.0,
+    "height": 720.0,
+    "font_size": "medium",
+    "font_family": "monospace"
+  }
+}

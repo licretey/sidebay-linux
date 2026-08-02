@@ -35,6 +35,10 @@ class Settings:
     font_family: str = ""
 
 
+# 默认配置（新装/无配置文件时的启动参数）：由用户最新历史运行参数生成
+DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "default-config.json"
+
+
 def default_config_path() -> Path:
     """遵循 XDG_CONFIG_HOME（验收流程用临时 HOME/XDG 目录验证持久化）。"""
     xdg = os.environ.get("XDG_CONFIG_HOME")
@@ -65,13 +69,28 @@ class Store:
                        for m in raw.get("modules", [])]
             settings = Settings(**self._filter_fields(raw.get("settings", {}), Settings))
         except (OSError, json.JSONDecodeError, TypeError, AttributeError, ValueError):
-            self.modules = [AppModule(type=ty) for ty in self.DEFAULT_TYPES]
-            self.settings = Settings()
+            self._load_defaults()
             return
         self.modules = modules
         self.settings = settings
         if not self.modules:
-            self.modules = [AppModule(type=ty) for ty in self.DEFAULT_TYPES]
+            self._load_defaults()
+
+    def _load_defaults(self) -> None:
+        """无配置文件/损坏/空列表时：优先 default-config.json（随包默认参数），
+        文件缺失回退内置 DEFAULT_TYPES。"""
+        try:
+            raw = json.loads(DEFAULT_CONFIG_PATH.read_text())
+            modules = [AppModule(**self._filter_fields(m, AppModule))
+                       for m in raw.get("modules", [])]
+            if modules:
+                self.modules = modules
+                self.settings = Settings(**self._filter_fields(raw.get("settings", {}), Settings))
+                return
+        except (OSError, json.JSONDecodeError, TypeError, AttributeError, ValueError):
+            pass
+        self.modules = [AppModule(type=ty) for ty in self.DEFAULT_TYPES]
+        self.settings = Settings()
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)

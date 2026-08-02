@@ -209,6 +209,7 @@ def test_module_height_pct_applies_size_request(tmp_path):
     try:
         workarea_h = win._workarea[3]
         assert workarea_h > 0
+        store.settings.height = None  # 默认配置可能带 height，此测试走全屏高度路径
         store.set_height_pct(store.modules[0].module_id, 50.0)
         win.rebuild_modules()
         first = win._module_box.get_first_child()

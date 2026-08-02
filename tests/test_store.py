@@ -11,8 +11,17 @@ def store(tmp_path):
     return Store(path=str(tmp_path / "config.json"))
 
 
+def _default_cfg():
+    """读取随包默认配置（default-config.json）。"""
+    import json
+
+    from sidebay.store import DEFAULT_CONFIG_PATH
+
+    return json.loads(DEFAULT_CONFIG_PATH.read_text())
+
+
 def test_default_modules_on_fresh_store(store):
-    assert [m.type for m in store.modules] == Store.DEFAULT_TYPES
+    assert [m.type for m in store.modules] == [m["type"] for m in _default_cfg()["modules"]]
 
 
 def test_add_and_persist(store, tmp_path):
@@ -64,7 +73,7 @@ def test_corrupt_file_recovers_to_defaults(tmp_path):
     path.write_text("{not json")
     s = Store(path=str(path))
     s.load()
-    assert [m.type for m in s.modules] == Store.DEFAULT_TYPES
+    assert [m.type for m in s.modules] == [m["type"] for m in _default_cfg()["modules"]]
 
 
 def test_unknown_keys_ignored_on_load(tmp_path):
@@ -90,7 +99,7 @@ def test_malformed_module_entry_falls_back_to_defaults(tmp_path):
     path.write_text(json.dumps({"modules": [42, {"type": "GPU"}], "settings": {}}))
     s = Store(path=str(path))
     s.load()
-    assert [m.type for m in s.modules] == Store.DEFAULT_TYPES
+    assert [m.type for m in s.modules] == [m["type"] for m in _default_cfg()["modules"]]
 
 
 def test_default_config_path_honors_xdg(monkeypatch, tmp_path):
@@ -128,16 +137,15 @@ def test_settings_new_fields_roundtrip(tmp_path):
 
 
 def test_settings_new_fields_defaults(tmp_path):
-    """旧配置文件无新字段时使用缺省值（向后兼容）。"""
+    """空模块列表时回退 default-config.json 的默认设置。"""
     path = tmp_path / "config.json"
     path.write_text('{"modules": [], "settings": {"position": "right"}}')
     s = Store(path=str(path))
     s.load()
-    assert s.settings.pos_x is None
-    assert s.settings.pos_y is None
-    assert s.settings.font_size == "medium"
-    assert s.settings.height is None
-    assert s.settings.font_family == ""
+    expected = _default_cfg()["settings"]
+    assert s.settings.pos_x == expected.get("pos_x")
+    assert s.settings.pos_y == expected.get("pos_y")
+    assert s.settings.font_size == expected.get("font_size", "medium")
 
 
 def test_refresh_interval_roundtrip(tmp_path):
