@@ -1,7 +1,8 @@
 * { font-family: "Cantarell", "Noto Sans CJK SC", sans-serif; }
 
 .sb-glass {
-  background-color: rgba(20, 22, 28, 0.78);
+  /* 深色玻璃：高不透明度避免桌面透出导致的泛白/灰蒙感 */
+  background-color: rgba(15, 17, 22, 0.92);
 }
 
 .sb-module-title {
