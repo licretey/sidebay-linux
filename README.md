@@ -1,4 +1,4 @@
-# Sidebay Linux — 动态模块化侧边栏（v0.1）
+# Sidebay Linux — 动态模块化侧边栏（v0.2）
 
 > **原仓库声明**：本项目源自 [linlinsunny/sidebay](https://github.com/linlinsunny/sidebay)（macOS 原生 SwiftUI 版，MIT 协议）。
 > 本仓库为 **Linux/GNOME 移植实现**（Python + GTK4），全部代码位于 `sidebay/` 目录，
@@ -22,7 +22,8 @@
 - **样式控制**：字号（小/中/大）、字体族、背景透明度、窗口宽度/高度均可调
 - **模块管理**：长按侧边栏进入设置，增删模块、拖拽排序、逐模块高度与**采集频率**（1s~60m）
 - **双语界面**：中文 / English
-- **低资源占用**：空闲 RSS ≈ 93MB，`/proc` 读取微秒级，GPU 查询自动节流
+- **低资源占用**：空闲 RSS 本地 ~91MB（GSK_RENDERER=cairo）、flatpak ~144MB（沙盒固有开销 ~50MB）；轮询统一节流、GPU 查询自动节流
+- **v0.2 重构**：模块定时器统一到窗口 tick（timer 5→2）、每 tick 对象复用与缓存、公共 helper 与 theme 单一来源、window/settings 拆分为 mixin 模块
 - **顶部面板托盘**：启动即显示侧边栏且不进 Dock，顶栏 Logo 控制显示/隐藏、设置、退出
 - **随包默认参数**：新装直接以预设的位置/尺寸/样式/模块启动（default-config.json）
 - **Flatpak 打包**：一键构建安装，含应用图标与启动器；进程名为 `sidebay`
