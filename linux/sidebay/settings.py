@@ -14,14 +14,26 @@ from sidebay.store import AppModule
 DEFAULT_EXEC_LINE = "flatpak run org.sidebay.SideBay"
 
 _LANGS = ["中文", "English"]
+_FONT_SIZES = [("小", "small"), ("中", "medium"), ("大", "large")]
+_FONT_FAMILIES = [
+    ("系统默认", ""),
+    ("Cantarell", "Cantarell"),
+    ("Noto Sans CJK SC", "Noto Sans CJK SC"),
+    ("WenQuanYi Micro Hei", "WenQuanYi Micro Hei"),
+    ("Liberation Sans", "Liberation Sans"),
+    ("等宽 monospace", "monospace"),
+]
 
 
 class SettingsWindow(Gtk.ApplicationWindow):
-    def __init__(self, app, store, on_close_callback, exec_line: str = DEFAULT_EXEC_LINE):
+    def __init__(self, app, store, on_close_callback, exec_line: str = DEFAULT_EXEC_LINE,
+                 on_position_change=None, on_style_change=None):
         super().__init__(application=app)
         self.store = store
         self._on_close_callback = on_close_callback
         self._exec_line = exec_line
+        self._on_position_change = on_position_change
+        self._on_style_change = on_style_change
         self._drag_start_width = 0
         self.set_decorated(False)
         self.set_default_size(480, 420)
@@ -36,7 +48,23 @@ class SettingsWindow(Gtk.ApplicationWindow):
         notebook.append_page(self._build_modules(), Gtk.Label(label="模块"))
         root.append(notebook)
         self.set_child(root)
+        self._font_provider: Gtk.CssProvider | None = None
+        self._apply_self_font()
         self.connect("close-request", lambda *_: self._on_close())
+
+    def _apply_self_font(self) -> None:
+        """设置窗口自身反映字号/字体选择（与侧边栏 apply_font_style 一致）。"""
+        size = self.store.settings.font_size or "medium"
+        if size != "medium":
+            self.get_child().add_css_class(f"sb-font-{size}")
+        if self._font_provider is not None:
+            self.get_style_context().remove_provider(self._font_provider)
+            self._font_provider = None
+        family = self.store.settings.font_family
+        if family:
+            self._font_provider = Gtk.CssProvider()
+            self._font_provider.load_from_string(f"* {{ font-family: '{family}'; }}")
+            self.get_style_context().add_provider(self._font_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
     # ---------- 头部 ----------
 
@@ -91,6 +119,42 @@ class SettingsWindow(Gtk.ApplicationWindow):
         width_box.append(self._width_value)
         page.append(self._row(t("Width", lang), width_box))
 
+        # 手动位置 X / Y（左上角坐标；实时移动窗口）
+        xy_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self._pos_x_spin = Gtk.SpinButton.new_with_range(0, 4096, 1)
+        self._pos_x_spin.set_value(self.store.settings.pos_x or 0)
+        self._pos_x_spin.set_width_chars(5)
+        self._pos_x_spin.connect("value-changed", self._on_pos_x_changed)
+        xy_box.append(self._pos_x_spin)
+        self._pos_y_spin = Gtk.SpinButton.new_with_range(0, 4096, 1)
+        self._pos_y_spin.set_value(self.store.settings.pos_y or 0)
+        self._pos_y_spin.set_width_chars(5)
+        self._pos_y_spin.connect("value-changed", self._on_pos_y_changed)
+        xy_box.append(self._pos_y_spin)
+        page.append(self._row(t("Position", lang) + " X/Y", xy_box))
+
+        # 字号
+        self._font_size_dropdown = Gtk.DropDown(model=Gtk.StringList.new([s for s, _ in _FONT_SIZES]))
+        current_size = self.store.settings.font_size or "medium"
+        self._font_size_dropdown.set_selected(next((i for i, (_, v) in enumerate(_FONT_SIZES) if v == current_size), 1))
+        self._font_size_dropdown.connect("notify::selected", self._on_font_size_changed)
+        page.append(self._row("字号", self._font_size_dropdown))
+
+        # 字体族
+        self._font_family_dropdown = Gtk.DropDown(model=Gtk.StringList.new([n for n, _ in _FONT_FAMILIES]))
+        current_family = self.store.settings.font_family
+        self._font_family_dropdown.set_selected(next((i for i, (_, v) in enumerate(_FONT_FAMILIES) if v == current_family), 0))
+        self._font_family_dropdown.connect("notify::selected", self._on_font_family_changed)
+        page.append(self._row("字体", self._font_family_dropdown))
+
+        # 背景透明度（与侧边栏底部滑块共用 store.settings.opacity）
+        self._opacity_scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL)
+        self._opacity_scale.set_range(0.1, 1.0)
+        self._opacity_scale.set_value(self.store.settings.opacity)
+        self._opacity_scale.set_hexpand(True)
+        self._opacity_scale.connect("value-changed", self._on_opacity_changed)
+        page.append(self._row("透明度", self._opacity_scale))
+
         # 开机自启
         self._autostart_switch = Gtk.Switch()
         self._autostart_switch.set_active(self.store.settings.launch_at_login)
@@ -142,6 +206,41 @@ class SettingsWindow(Gtk.ApplicationWindow):
         self.store.settings.launch_at_login = bool(state)
         self.store.save()
         return False
+
+    def _on_pos_x_changed(self, spin: Gtk.SpinButton) -> None:
+        self.store.settings.pos_x = float(spin.get_value())
+        self.store.save()
+        if self._on_position_change is not None and self.store.settings.pos_y is not None:
+            self._on_position_change(self.store.settings.pos_x, self.store.settings.pos_y)
+
+    def _on_pos_y_changed(self, spin: Gtk.SpinButton) -> None:
+        self.store.settings.pos_y = float(spin.get_value())
+        self.store.save()
+        if self._on_position_change is not None and self.store.settings.pos_x is not None:
+            self._on_position_change(self.store.settings.pos_x, self.store.settings.pos_y)
+
+    def _on_font_size_changed(self, dropdown: Gtk.DropDown, _pspec) -> None:
+        _, value = _FONT_SIZES[dropdown.get_selected()]
+        self.store.settings.font_size = value
+        self.store.save()
+        self._apply_self_font()
+        if self._on_style_change is not None:
+            self._on_style_change()
+
+    def _on_font_family_changed(self, dropdown: Gtk.DropDown, _pspec) -> None:
+        _, value = _FONT_FAMILIES[dropdown.get_selected()]
+        self.store.settings.font_family = value
+        self.store.save()
+        self._apply_self_font()
+        if self._on_style_change is not None:
+            self._on_style_change()
+
+    def _on_opacity_changed(self, scale: Gtk.Scale) -> None:
+        value = scale.get_value()
+        self.store.settings.opacity = value
+        self.store.save()
+        if self._on_style_change is not None:
+            self._on_style_change()
 
     # ---------- 模块页 ----------
 

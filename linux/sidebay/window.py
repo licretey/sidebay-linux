@@ -56,6 +56,9 @@ class SidebarWindow(Gtk.ApplicationWindow):
         overlay.add_overlay(self._build_edge_zone())
         # 深色玻璃质感背景（与设置窗口一致；缺此窗口全透明）
         overlay.add_css_class("sb-glass")
+        self._font_overlay = overlay
+        self._font_provider: Gtk.CssProvider | None = None
+        self._apply_font_css()
         self.set_child(overlay)
 
         self._apply_position()
@@ -68,7 +71,73 @@ class SidebarWindow(Gtk.ApplicationWindow):
         self.connect("destroy", self._on_window_destroy)
         # realize 后 surface 才可用：此时再跑一次贴边逻辑（含 X11 XMoveResizeWindow）
         self.connect("realize", lambda *_: self._apply_width())
+        # map 后合成器可能覆盖初始放置（GNOME 会重新摆放新窗口）：
+        # 延迟 500ms 再贴一次边，确保最终位置正确
+        self.connect("map", lambda *_: GLib.timeout_add(500, self._redock_once))
         self._build_context_menu()
+        self._build_long_press()
+
+    def _redock_once(self) -> bool:
+        self._apply_width()
+        return False
+
+    # ---------- 手动定位 ----------
+
+    def apply_position_xy(self, x: float, y: float) -> None:
+        """设置页实时定位：XWayland 下 XMoveResizeWindow 移动窗口；原生 Wayland 无操作。"""
+        height = self.get_height() if self.get_height() > 0 else (
+            self._workarea[3] if hasattr(self, "_workarea") else 800
+        )
+        self._x11_dock(int(self._current_width()), height, x=int(x), y=int(y))
+
+    def apply_font_style(self) -> None:
+        """设置页字号/字体变更后即时重应用（侧边栏与设置窗口均调用）。"""
+        self._apply_font_css()
+
+    def _apply_font_css(self) -> None:
+        overlay = self._font_overlay
+        for cls in ("sb-font-small", "sb-font-large"):
+            overlay.remove_css_class(cls)
+        size = self.store.settings.font_size or "medium"
+        if size != "medium":
+            overlay.add_css_class(f"sb-font-{size}")
+        if self._font_provider is not None:
+            self.get_style_context().remove_provider(self._font_provider)
+            self._font_provider = None
+        family = self.store.settings.font_family
+        if family:
+            # 字体族是继承属性：窗口级提供器 `*` 规则级联到所有子控件
+            # （sb-tick-label 等显式 font-family: monospace 的除外）
+            self._font_provider = Gtk.CssProvider()
+            self._font_provider.load_from_string(f"* {{ font-family: '{family}'; }}")
+            self.get_style_context().add_provider(self._font_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+    # ---------- 长按打开设置 ----------
+
+    def _build_long_press(self) -> None:
+        self._long_press_timer: int | None = None
+        gesture = Gtk.GestureClick(button=1)
+        gesture.connect("pressed", self._on_press_start)
+        gesture.connect("released", self._on_press_end)
+        gesture.connect("stopped", self._on_press_end)
+        self.add_controller(gesture)
+
+    def _on_press_start(self, _gesture, _n, _x, _y) -> None:
+        self._cancel_long_press()
+        self._long_press_timer = GLib.timeout_add(1500, self._on_long_press)
+
+    def _on_press_end(self, *_a) -> None:
+        self._cancel_long_press()
+
+    def _cancel_long_press(self) -> None:
+        if self._long_press_timer is not None:
+            GLib.source_remove(self._long_press_timer)
+            self._long_press_timer = None
+
+    def _on_long_press(self) -> bool:
+        self._long_press_timer = None
+        self.activate_action("app.open-settings", None)
+        return False
 
     def _tick(self) -> bool:
         self._monitor.last = self._monitor.tick()
@@ -142,11 +211,16 @@ class SidebarWindow(Gtk.ApplicationWindow):
                 else self._workarea[0] + self._workarea[2] - width,
                 y,
             )
-        self._x11_dock(width, h)
+        if self.store.settings.pos_x is not None and self.store.settings.pos_y is not None:
+            # 手动定位优先：直接放置到用户设定的坐标
+            self._x11_dock(width, h, x=int(self.store.settings.pos_x), y=int(self.store.settings.pos_y))
+        else:
+            self._x11_dock(width, h)
 
-    def _x11_dock(self, width: int, height: int) -> None:
-        """X11 后端：XMoveResizeWindow 直接贴边定位/改宽（失败静默，绝不崩溃）。
+    def _x11_dock(self, width: int, height: int, x: int | None = None, y: int | None = None) -> None:
+        """X11 后端：XMoveResizeWindow 定位/改宽（失败静默，绝不崩溃）。
 
+        x/y 缺省时按贴边逻辑计算（position 设置）；显式传入时用传入坐标（手动定位）。
         Wayland（无 X11Surface）下跳过：窗口停留在 GTK 放置的位置。
         """
         try:
@@ -179,9 +253,12 @@ class SidebarWindow(Gtk.ApplicationWindow):
             display = lib.XOpenDisplay(None)
             if not display:
                 return
-            x = (self._workarea[0] if self.store.settings.position == "left"
-                 else self._workarea[0] + self._workarea[2] - width)
-            lib.XMoveResizeWindow(display, xid, x, self._workarea[1], width, height)
+            if x is None:
+                x = (self._workarea[0] if self.store.settings.position == "left"
+                     else self._workarea[0] + self._workarea[2] - width)
+            if y is None:
+                y = self._workarea[1]
+            lib.XMoveResizeWindow(display, xid, x, y, width, height)
             lib.XFlush(display)
             lib.XCloseDisplay(display)
         except Exception:

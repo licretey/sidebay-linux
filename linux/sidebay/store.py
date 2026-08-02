@@ -22,6 +22,12 @@ class Settings:
     opacity: float = 1.0
     language: str = "zh"
     launch_at_login: bool = False
+    # 手动定位：pos_x/pos_y 为 None 时维持贴边行为；设置后窗口左上角定位到该坐标
+    pos_x: float | None = None
+    pos_y: float | None = None
+    # 样式：字号 small/medium/large；字体族空串 = 系统默认
+    font_size: str = "medium"
+    font_family: str = ""
 
 
 def default_config_path() -> Path:

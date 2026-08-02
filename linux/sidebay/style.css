@@ -80,3 +80,9 @@
 /* 股票涨跌色（GTK 4 无 override_color，由 CSS 类控制；须在 .sb-tick-label 之后定义） */
 .sb-stock-up { color: rgb(242, 77, 77); }
 .sb-stock-down { color: rgb(51, 204, 102); }
+
+/* 字号控制：类挂在侧边栏/设置窗口根节点，后代选择器覆盖模块显式字号 */
+.sb-font-small .sb-module-title { font-size: 11px; }
+.sb-font-small .sb-tick-label { font-size: 9px; }
+.sb-font-large .sb-module-title { font-size: 15px; }
+.sb-font-large .sb-tick-label { font-size: 13px; }

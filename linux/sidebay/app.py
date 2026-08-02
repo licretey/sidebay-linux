@@ -65,6 +65,13 @@ class SidebayApplication(Gtk.Application):
                 self.window._apply_position() if self.window else None,
                 setattr(self, "settings_window", None),
             ),
+            on_position_change=(
+                (lambda x, y: self.window.apply_position_xy(x, y)) if self.window else None
+            ),
+            on_style_change=(
+                (lambda: (self.window.apply_font_style(), self.window._apply_opacity()))
+                if self.window else None
+            ),
         )
         self.settings_window.present()
 

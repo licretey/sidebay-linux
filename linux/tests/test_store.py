@@ -106,3 +106,32 @@ def test_default_config_path_falls_back_to_home(monkeypatch, tmp_path):
     monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
     monkeypatch.setenv("HOME", str(tmp_path))
     assert default_config_path() == tmp_path / ".config" / "sidebay" / "config.json"
+
+
+def test_settings_new_fields_roundtrip(tmp_path):
+    """手动定位与样式字段的持久化往返。"""
+    path = str(tmp_path / "config.json")
+    s1 = Store(path=path)
+    s1.settings.pos_x = 120.0
+    s1.settings.pos_y = 80.0
+    s1.settings.font_size = "large"
+    s1.settings.font_family = "Cantarell"
+    s1.save()
+    s2 = Store(path=path)
+    s2.load()
+    assert s2.settings.pos_x == 120.0
+    assert s2.settings.pos_y == 80.0
+    assert s2.settings.font_size == "large"
+    assert s2.settings.font_family == "Cantarell"
+
+
+def test_settings_new_fields_defaults(tmp_path):
+    """旧配置文件无新字段时使用缺省值（向后兼容）。"""
+    path = tmp_path / "config.json"
+    path.write_text('{"modules": [], "settings": {"position": "right"}}')
+    s = Store(path=str(path))
+    s.load()
+    assert s.settings.pos_x is None
+    assert s.settings.pos_y is None
+    assert s.settings.font_size == "medium"
+    assert s.settings.font_family == ""
