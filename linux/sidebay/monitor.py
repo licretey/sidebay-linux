@@ -16,13 +16,26 @@ class CpuSample:
 
 
 def parse_cpu_usage(text: str, prev: CpuSample | None) -> tuple[float, CpuSample]:
+    """标准 Linux CPU 语义（与 htop/gnome-system-monitor 一致）：
+
+    - idle 含 iowait（iowait 是等磁盘的空闲时间，非忙碌）
+    - guest/guest_nice 不参与求和（内核已将其计入 user/nice，重复求和会虚增 total）
+    - busy = user + nice + system + irq + softirq + steal
+    """
     for line in text.splitlines():
         if line.startswith("cpu ") or line == "cpu":
-            parts = line.split()
-            nums = [int(p) for p in parts[1:]]
-            total = sum(nums)
+            nums = [int(p) for p in line.split()[1:]]
+            user = nums[0] if len(nums) > 0 else 0
+            nice = nums[1] if len(nums) > 1 else 0
+            system = nums[2] if len(nums) > 2 else 0
             idle = nums[3] if len(nums) > 3 else 0
-            sample = CpuSample(total=total, idle=idle)
+            iowait = nums[4] if len(nums) > 4 else 0
+            irq = nums[5] if len(nums) > 5 else 0
+            softirq = nums[6] if len(nums) > 6 else 0
+            steal = nums[7] if len(nums) > 7 else 0
+            total = user + nice + system + idle + iowait + irq + softirq + steal
+            idle_total = idle + iowait
+            sample = CpuSample(total=total, idle=idle_total)
             if prev is None or prev.total == 0:
                 return 0.0, sample
             total_diff = sample.total - prev.total

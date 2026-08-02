@@ -94,3 +94,24 @@ def test_fan_rpm():
 def test_gpu_busy():
     assert parse_gpu_busy("37\n") == 37.0
     assert parse_gpu_busy("") == 0.0
+
+
+def test_cpu_iowait_counts_as_idle():
+    """iowait 是空闲时间：含 iowait 的样本使用率应低于忽略 iowait 的算法。
+    S1→S2：busy +110（user/nice/sys/irq/softirq/steal），idle+iowait +200。"""
+    s1 = "cpu  100 10 200 1000 100 0 0 0 0 0\n"
+    s2 = "cpu  200 20 400 1100 200 0 0 0 0 0\n"
+    _, prev = parse_cpu_usage(s1, None)
+    usage, _ = parse_cpu_usage(s2, prev)
+    # total_diff=510, idle_diff=200 → 60.78%
+    assert abs(usage - 100.0 * (310 / 510)) < 0.01
+
+
+def test_cpu_guest_not_double_counted():
+    """guest 已含于 user/nice：双计会虚增 total 导致使用率虚低。"""
+    s1 = "cpu  1000 0 500 8000 200 10 20 30 40 0\n"
+    s2 = "cpu  2000 0 1000 8100 400 20 40 60 80 0\n"
+    _, prev = parse_cpu_usage(s1, None)
+    usage, _ = parse_cpu_usage(s2, prev)
+    # busy 差 = 1000+500+10+20+30 = 1560（guest 40 不计），idle 差 = 300 → 83.87%
+    assert abs(usage - 100.0 * (1560 / 1860)) < 0.01
