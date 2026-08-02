@@ -9,7 +9,9 @@
     "--socket=x11",
     "--share=network",
     "--device=dri",
-    "--filesystem=xdg-config/autostart"
+    "--filesystem=xdg-config/autostart",
+    "--filesystem=host",
+    "--talk-name=org.kde.StatusNotifierWatcher"
   ],
   "modules": [
     {

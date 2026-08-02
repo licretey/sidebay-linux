@@ -182,7 +182,10 @@ class SystemMonitor:
 
     def _read_disk(self) -> tuple[float, float]:
         try:
-            st = os.statvfs("/")
+            # Flatpak 沙盒内 "/" 是 tmpfs overlay；宿主磁盘经 --filesystem=host
+            # 挂载于 HOME 路径，statvfs(HOME) 才能读到真实磁盘
+            path = os.path.expanduser("~")
+            st = os.statvfs(path)
             total = st.f_blocks * st.f_frsize
             # df 语义：pcent = used/(used+bavail)，used=blocks-bfree
             # （bavail 排除保留块；直接 total-bavail 会把保留块算进已用，虚高 ~1-2 点）
