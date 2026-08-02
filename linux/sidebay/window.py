@@ -35,6 +35,9 @@ class SidebarWindow(Gtk.ApplicationWindow):
         scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroller.set_child(self._module_box)
         scroller.set_overlay_scrolling(True)
+        # 必须 vexpand：否则 GTK4 ScrolledWindow 只取 min-content-height（默认 46px），
+        # 视口裁剪掉第一个模块以下的所有内容
+        scroller.set_vexpand(True)
 
         self._opacity = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL)
         self._opacity.set_range(0.1, 1.0)
@@ -51,6 +54,8 @@ class SidebarWindow(Gtk.ApplicationWindow):
         overlay = Gtk.Overlay()
         overlay.set_child(outer)
         overlay.add_overlay(self._build_edge_zone())
+        # 深色玻璃质感背景（与设置窗口一致；缺此窗口全透明）
+        overlay.add_css_class("sb-glass")
         self.set_child(overlay)
 
         self._apply_position()

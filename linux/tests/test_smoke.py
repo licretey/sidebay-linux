@@ -321,3 +321,24 @@ def test_style_css_defines_smoke_classes():
     text = css.read_text()
     for cls in (".sb-calc-op", ".sb-calc-fn", ".sb-edge-zone", ".sb-stock-up", ".sb-stock-down"):
         assert cls in text
+
+
+@pytest.mark.smoke
+def test_sidebar_scroller_expands_and_has_glass(tmp_path):
+    """回归：ScrolledWindow 必须 vexpand（否则视口 46px 裁剪掉首模块以下内容）；
+    主窗口必须带 sb-glass 玻璃背景类（否则全透明）。"""
+    from sidebay.app import SidebayApplication
+    from sidebay.store import Store
+
+    app = SidebayApplication(store=Store(path=str(tmp_path / "c.json")))
+    win = app.create_window()
+    try:
+        overlay = win.get_child()
+        assert overlay.get_css_classes(), "sidebar root should have css classes"
+        assert "sb-glass" in overlay.get_css_classes()
+        # overlay 主 child = VBox(scroller + slider)
+        vbox = overlay.get_first_child()
+        scroller = vbox.get_first_child()
+        assert scroller.get_vexpand(), "scroller must vexpand so modules are not clipped"
+    finally:
+        win.run_dispose()
