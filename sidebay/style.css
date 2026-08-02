@@ -116,3 +116,72 @@
 .sb-close-native label { font-size: 11px; color: rgba(255, 255, 255, 0.85); }
 .sb-close-native:hover { background-color: rgba(255, 59, 48, 0.9); }
 .sb-close-native:hover label { color: #ffffff; }
+
+/* 控件统一深色玻璃风格：不依赖系统主题（Flatpak 沙盒内是 Adwaita 亮色，
+   不覆盖会导致输入框/下拉/开关乳白色） */
+entry,
+spinbutton,
+dropdown > button,
+switch,
+scale,
+combobox > box > button {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  caret-color: rgba(255, 255, 255, 0.9);
+}
+entry:hover,
+spinbutton:hover,
+dropdown > button:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+entry:focus,
+spinbutton:focus,
+dropdown > button:focus {
+  border-color: rgba(255, 255, 255, 0.45);
+  background-color: rgba(255, 255, 255, 0.12);
+}
+entry selection {
+  background-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+entry placeholder,
+spinbutton placeholder { color: rgba(255, 255, 255, 0.4); }
+
+/* 下拉弹出列表（GtkPopover 内） */
+popover > contents,
+popover listview,
+popover listview row {
+  background-color: rgba(20, 22, 28, 0.98);
+  color: rgba(255, 255, 255, 0.9);
+}
+popover listview row:hover,
+popover listview row:selected {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+/* 开关 */
+switch {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+switch:checked { background-color: rgba(80, 160, 255, 0.7); }
+switch slider {
+  background-color: #ffffff;
+  border-radius: 9999px;
+  min-width: 18px;
+  min-height: 18px;
+}
+
+/* 滚动条（侧边栏模块区） */
+scrollbar slider {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-radius: 9999px;
+}
+scrollbar slider:hover { background-color: rgba(255, 255, 255, 0.4); }
+
+/* Notebook 页内容区透明（露出 sb-glass 背景） */
+notebook > stack { background-color: transparent; }
+notebook { background-color: transparent; }

@@ -36,6 +36,18 @@ class SidebayApplication(Gtk.Application):
         self.connect("startup", self._on_startup)
 
     def _on_startup(self, app) -> None:
+        # 强制深色主题偏好：Flatpak 沙盒内取不到宿主主题，默认 Adwaita 亮色，
+        # 未自绘样式的控件（输入框/下拉/开关）会变成乳白色
+        try:
+            settings = Gtk.Settings.get_default()
+            for prop, value in (("gtk-application-prefer-dark-theme", True),
+                                ("gtk-color-scheme", "prefer-dark")):
+                try:
+                    settings.set_property(prop, value)
+                except Exception:
+                    pass
+        except Exception:
+            pass
         provider = Gtk.CssProvider()
         provider.load_from_path(str(CSS_PATH))
         # GTK 4.22：Gtk.Window.get_default_display 已移除，用 Gdk.Display.get_default()
