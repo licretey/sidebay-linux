@@ -68,7 +68,7 @@ class SidebarWindow(Gtk.ApplicationWindow):
         self._tick_timer = GLib.timeout_add(1000, self._tick)
         self.connect("destroy", self._on_window_destroy)
         # realize 后 surface 才可用：此时再跑一次贴边逻辑（含 X11 XMoveResizeWindow）
-        self.connect("realize", lambda *_: self._apply_width())
+        self.connect("realize", lambda *_: (self._apply_width(), self._set_x11_window_type()))
         # map 后合成器（Mutter）的初始放置会持续约数秒，期间移动会被覆盖：
         # 在 500ms/2s/5s 各重试一次定位，确保最终位置（贴边或手动坐标）落位
         self.connect("map", self._schedule_redock)
@@ -275,6 +275,52 @@ class SidebarWindow(Gtk.ApplicationWindow):
 
     def _apply_opacity(self) -> None:
         self.set_opacity(self.store.settings.opacity)
+
+    def _set_x11_window_type(self) -> None:
+        """把窗口标记为 DOCK 类型（_NET_WM_WINDOW_TYPE_DOCK + SKIP_TASKBAR）：
+        窗口可见但不出现在 Dock/任务栏/Alt-Tab（GNOME 对 dock 类型窗口的
+        标准处理，Plank 等停靠栏同款）。仅 X11/XWayland 下生效，失败静默。"""
+        try:
+            import ctypes
+
+            from gi.repository import GdkX11
+
+            native = self.get_native()
+            surface = native.get_surface() if native is not None else None
+            if surface is None or not isinstance(surface, GdkX11.X11Surface):
+                return
+            xid = surface.get_xid()
+            if not xid:
+                return
+            lib = ctypes.CDLL("libX11.so.6")
+            lib.XOpenDisplay.restype = ctypes.c_void_p
+            lib.XOpenDisplay.argtypes = [ctypes.c_char_p]
+            lib.XInternAtom.restype = ctypes.c_ulong
+            lib.XInternAtom.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int]
+            lib.XChangeProperty.argtypes = [
+                ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong,
+                ctypes.c_int, ctypes.c_int, ctypes.c_void_p, ctypes.c_int,
+            ]
+            lib.XFlush.argtypes = [ctypes.c_void_p]
+            lib.XCloseDisplay.argtypes = [ctypes.c_void_p]
+            display = lib.XOpenDisplay(None)
+            if not display:
+                return
+            XA_ATOM = 4  # 预定义原子
+            # _NET_WM_WINDOW_TYPE = DOCK
+            prop = lib.XInternAtom(display, b"_NET_WM_WINDOW_TYPE", False)
+            value = lib.XInternAtom(display, b"_NET_WM_WINDOW_TYPE_DOCK", False)
+            arr = (ctypes.c_ulong * 1)(value)
+            lib.XChangeProperty(display, xid, prop, XA_ATOM, 32, 0, arr, 1)
+            # _NET_WM_STATE += SKIP_TASKBAR
+            prop2 = lib.XInternAtom(display, b"_NET_WM_STATE", False)
+            value2 = lib.XInternAtom(display, b"_NET_WM_STATE_SKIP_TASKBAR", False)
+            arr2 = (ctypes.c_ulong * 1)(value2)
+            lib.XChangeProperty(display, xid, prop2, XA_ATOM, 32, 0, arr2, 1)
+            lib.XFlush(display)
+            lib.XCloseDisplay(display)
+        except Exception:
+            pass
 
     # ---------- 边缘拖拽改宽热区 ----------
 

@@ -60,8 +60,10 @@ class SidebayApplication(Gtk.Application):
         if self.window is not None:
             self.window.present()
             return
-        # 后台运行：应用 hold 保活，窗口全部隐藏后不退出
+        # 后台运行：应用 hold 保活，窗口隐藏后不退出
         self.hold()
+        # 窗口默认显示（DOCK 类型使其不出现在任务栏/dock），托盘仅作控制入口
+        self.create_window()
         # 延迟到主循环空闲时注册托盘：do_activate 早于主循环启动，
         # 立即注册时 watcher 异步探测我们的对象无法分发回调，会被丢弃
         GLib.idle_add(self._start_tray_deferred)
@@ -76,9 +78,8 @@ class SidebayApplication(Gtk.Application):
                 return False
         except Exception:
             pass
-        # 无托盘（无 AppIndicator 扩展等）：回退为直接显示窗口
+        # 无托盘（无 AppIndicator 扩展等）：窗口已显示，仅记录
         self.tray = None
-        self.create_window()
         return False
 
     def _on_open_settings(self, *_a) -> None:
