@@ -1,4 +1,4 @@
-# Sidebay Linux — 动态模块化侧边栏
+# Sidebay Linux — 动态模块化侧边栏（v0.1）
 
 > **原仓库声明**：本项目源自 [linlinsunny/sidebay](https://github.com/linlinsunny/sidebay)（macOS 原生 SwiftUI 版，MIT 协议）。
 > 本仓库为 **Linux/GNOME 移植实现**（Python + GTK4），全部代码位于 `sidebay/` 目录，
@@ -23,7 +23,9 @@
 - **模块管理**：长按侧边栏进入设置，增删模块、拖拽排序、逐模块高度与**采集频率**（1s~60m）
 - **双语界面**：中文 / English
 - **低资源占用**：空闲 RSS ≈ 93MB，`/proc` 读取微秒级，GPU 查询自动节流
-- **Flatpak 打包**：一键构建安装，含应用图标与启动器
+- **顶部面板托盘**：启动即显示侧边栏且不进 Dock，顶栏 Logo 控制显示/隐藏、设置、退出
+- **随包默认参数**：新装直接以预设的位置/尺寸/样式/模块启动（default-config.json）
+- **Flatpak 打包**：一键构建安装，含应用图标与启动器；进程名为 `sidebay`
 
 ---
 
@@ -79,8 +81,9 @@ flatpak run org.sidebay.SideBay              # 运行
 
 ## 🎮 使用教程
 
-### 1. 打开设置页
+### 1. 托盘与设置页
 
+- **顶栏 Logo**：左键弹出菜单（显示/隐藏侧边栏、设置、退出）；侧边栏窗口不显示在 Dock/任务栏
 - **长按侧边栏任意位置约 1.5 秒** → 弹出设置窗口
 - 或右键侧边栏 → 「后台设置」
 
@@ -130,11 +133,12 @@ flatpak run org.sidebay.SideBay              # 运行
 ```
 sidebay/
 ├── sidebay/
-│   ├── main.py      # 入口：自动选 XWayland、GSK_RENDERER=cairo
+│   ├── main.py      # 入口：进程名 sidebay、自动选 XWayland、GSK_RENDERER=cairo
 │   ├── app.py       # Gtk.Application（单实例、设置窗口管理）
 │   ├── window.py    # 侧边栏窗口：定位/贴边/长按手势/边缘拖宽
 │   ├── settings.py  # 设置窗口（自绘标签行）
-│   ├── store.py     # 配置持久化（JSON，XDG 路径）
+│   ├── store.py     # 配置持久化（JSON，XDG 路径；无配置时读 default-config.json）
+│   ├── default-config.json  # 随包默认启动参数（新装即用）
 │   ├── monitor.py   # 系统采集（/proc、/sys 纯函数解析 + 采样类）
 │   ├── autostart.py # 开机自启
 │   ├── widgets/
