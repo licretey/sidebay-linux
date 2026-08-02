@@ -92,7 +92,7 @@ wheels = [
 [[package]]
 name = "sidebay"
 version = "1.0.0"
-source = { virtual = "." }
+source = { editable = "." }
 
 [package.dev-dependencies]
 dev = [

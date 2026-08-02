@@ -14,8 +14,9 @@ Debian/Ubuntu 直接运行所需包：
 
 ```bash
 sudo apt install python3 python3-gi python3-gi-cairo gir1.2-gtk-4.0 xvfb   # xvfb 仅用于无显示环境冒烟测试
-python3 -m pip install --user python-xlib   # 仅键盘监视需要，缺失时模块显示"无辅助功能权限"
 ```
+
+python-xlib（键盘监视模块需要）由 uv 的 dev 依赖组随 `uv sync` 自动安装。
 
 ## 安装
 
@@ -44,23 +45,27 @@ flatpak-builder --user --install --force-clean build org.sidebay.SideBay.json
 沙盒权限：Wayland + X11 套接字、网络（Stock/Network 模块）、DRI（GPU 渲染）、
 可写 `~/.config/autostart`（开机自启开关）。
 
-### 方式二：直接运行
+### 方式二：直接运行（uv）
 
 ```bash
-./run.sh          # 等价于 PYTHONPATH="$(pwd)" python3 -m sidebay
+cd linux && uv venv --system-site-packages && uv sync
+./run.sh          # 等价于 uv run --no-sync sidebay
 ```
+
+两步创建 venv 的原因：gi 来自系统包，需要 system-site-packages venv；uv 无配置文件键，故两步创建。
+（`./run.sh` 首次运行时若 `.venv` 不存在，也会自动执行上述两步。）
 
 ## 运行
 
 ```bash
 flatpak run org.sidebay.SideBay     # Flatpak 方式
-./run.sh                            # 直接运行
+./run.sh                            # 直接运行，等价于 uv run --no-sync sidebay
 ```
 
 无显示环境冒烟验证（X11 后端）：
 
 ```bash
-xvfb-run -a ./run.sh                # 退出码 0 且无 traceback
+GDK_BACKEND=x11 xvfb-run -a ./run.sh   # 退出码 0 且无 traceback
 ```
 
 开机自启：设置窗口的"开机自启"开关写入 `~/.config/autostart/sidebay.desktop`。
@@ -72,9 +77,8 @@ Exec 行自动适配运行方式——Flatpak 下（检测到 `FLATPAK_ID`）写
 
 ```bash
 cd linux
-python3 -m pytest            # 纯 Python 测试，无需显示环境
-# 或使用仓库 venv：
-.venv/bin/python -m pytest
+uv run pytest                            # 纯 Python 测试，无需显示环境
+GDK_BACKEND=x11 xvfb-run -a uv run pytest   # 无显示环境全量测试（含键盘 XRecord 集成测试）
 ```
 
 覆盖：解析器（CPU/GPU/内存/磁盘）、SystemMonitor 采样、环形仪表纯逻辑、

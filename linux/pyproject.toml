@@ -16,6 +16,10 @@ dev = [
 
 [tool.uv]
 python-preference = "system"
+package = true
+# `package = true` makes uv sync install the project (editable) and create the
+# `sidebay` console script from [project.scripts]; without it uv treats the
+# project as a virtual root and `uv run sidebay` cannot resolve the entry point.
 # NOTE: `python-system-site-packages` (as in the plan) does not exist in uv 0.11.x —
 # pyproject support for system site packages was never implemented (astral-sh/uv#5737).
 # System site packages (gi) are enabled by creating the venv with
