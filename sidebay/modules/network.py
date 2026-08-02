@@ -8,6 +8,7 @@ from gi.repository import Gdk, Gtk
 
 from sidebay.i18n import t
 from sidebay.modules.base import Module
+from sidebay.theme import NET_DOWN_COLOR, NET_UP_COLOR
 
 
 def format_bytes(bytes_per_sec: float) -> str:
@@ -18,9 +19,9 @@ def format_bytes(bytes_per_sec: float) -> str:
     return f"{bytes_per_sec:.0f} B/s"
 
 
-# 上下行箭头色（规格：绿↑蓝↓）
-UP_COLOR = (0.20, 0.85, 0.40)
-DOWN_COLOR = (0.32, 0.60, 1.00)
+# 上下行箭头色（集中定义于 sidebay/theme.py）
+UP_COLOR = NET_UP_COLOR
+DOWN_COLOR = NET_DOWN_COLOR
 
 
 def arrow_markup(arrow: str, text: str, color: tuple) -> str:

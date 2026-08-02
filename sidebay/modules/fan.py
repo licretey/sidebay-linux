@@ -8,6 +8,7 @@ from gi.repository import GLib, Gdk, Gtk
 
 from sidebay.i18n import t
 from sidebay.modules.base import Module
+from sidebay.theme import FAN_COLOR as _FAN_COLOR
 
 from math import cos, pi, sin
 
@@ -64,11 +65,11 @@ class FanModule(Module):
             cr.save()
             cr.rotate(i * 2 * pi / 6)
             cr.scale(1.0, 0.42)  # 椭圆扇叶
-            cr.set_source_rgba(0.2, 0.8, 0.8, 0.9)
+            cr.set_source_rgba(*_FAN_COLOR, 0.9)
             cr.arc(0, -r * 0.55, r * 0.38, 0, 2 * pi)
             cr.fill()
             cr.restore()
-        cr.set_source_rgba(0.2, 0.8, 0.8, 0.25)
+        cr.set_source_rgba(*_FAN_COLOR, 0.25)
         cr.arc(0, 0, 3, 0, 2 * pi)
         cr.fill()
 

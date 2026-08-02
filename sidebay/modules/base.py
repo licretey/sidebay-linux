@@ -27,6 +27,20 @@ class Module(ABC):
     def on_destroy(self) -> None:
         """清理定时器/连接（可选重写）。"""
 
+    @staticmethod
+    def make_title(text: str) -> Gtk.Label:
+        """模块标题（统一 sb-module-title 样式）。"""
+        label = Gtk.Label(label=text)
+        label.add_css_class("sb-module-title")
+        return label
+
+    @staticmethod
+    def make_value_label(css: str = "sb-tick-label") -> Gtk.Label:
+        """数值标签（统一 sb-tick-label 样式）。"""
+        label = Gtk.Label()
+        label.add_css_class(css)
+        return label
+
     def should_update(self, now: float) -> bool:
         """窗口 tick（1s）按模块频率节流：到期才调用 on_tick。"""
         if now - self._last_update >= self.refresh_interval:
