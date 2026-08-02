@@ -73,7 +73,6 @@
 }
 .sb-settings-close:hover { background-color: rgba(255, 59, 48, 1.0); }
 
-.sb-rounded { border-radius: 24px; }
 
 /* 边缘拖拽热区：透明即可，仅作为命中区 */
 .sb-edge-zone { background-color: transparent; }
