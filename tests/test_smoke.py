@@ -315,7 +315,7 @@ def test_autostart_switch_rolls_back_on_write_failure(tmp_path, monkeypatch):
     # 本测试不 present 窗口，无需注册
     win = SettingsWindow(app, store, on_close_callback=lambda: None)
     try:
-        monkeypatch.setattr("sidebay.settings.set_autostart",
+        monkeypatch.setattr("sidebay.settings_controls.set_autostart",
                             lambda _e, _x: (_ for _ in ()).throw(OSError()))
         monkeypatch.setattr("sidebay.autostart.autostart_dir", lambda: tmp_path / "autostart")
         switch = win._autostart_switch
@@ -324,7 +324,7 @@ def test_autostart_switch_rolls_back_on_write_failure(tmp_path, monkeypatch):
         assert switch.get_active() is False      # 磁盘无文件 → 开关保持关闭
         assert store.settings.launch_at_login is False
         # 成功路径：持久化
-        monkeypatch.setattr("sidebay.settings.set_autostart", lambda _e, _x: None)
+        monkeypatch.setattr("sidebay.settings_controls.set_autostart", lambda _e, _x: None)
         win._on_autostart_toggled(switch, True)
         assert store.settings.launch_at_login is True
     finally:
