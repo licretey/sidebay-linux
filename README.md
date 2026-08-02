@@ -5,7 +5,7 @@
 > 全部 Linux 实现位于 `linux/` 目录。感谢原作者的创意与设计。
 
 <p align="center">
-  <img src="linux-screenshot.png" width="175" />
+  <img src="linux-screenshot.png" width="138" />
 </p>
 
 **Sidebay** 是一款无边框、悬浮式、深色玻璃质感的模块化侧边栏小工具。它贴合屏幕边缘
