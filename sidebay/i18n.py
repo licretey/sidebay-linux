@@ -43,4 +43,4 @@ def t(key: str, lang: str) -> str:
     entry = _TRANSLATIONS.get(key)
     if entry is None:
         return key
-    return entry.get(lang, entry["en"])
+    return entry.get(lang, entry["zh"])

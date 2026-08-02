@@ -52,14 +52,14 @@
   ],
   "settings": {
     "position": "left",
-    "width": 95.0,
-    "opacity": 0.8590361445783133,
+    "width": 88.0,
+    "opacity": 0.7795918367346938,
     "language": "zh",
     "launch_at_login": false,
-    "pos_x": 60.0,
-    "pos_y": 200.0,
-    "height": 720.0,
-    "font_size": "medium",
-    "font_family": "monospace"
+    "pos_x": 80.0,
+    "pos_y": 220.0,
+    "height": 716.0,
+    "font_size": "large",
+    "font_family": ""
   }
 }
