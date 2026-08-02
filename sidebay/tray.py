@@ -60,6 +60,7 @@ class TrayIcon:
     def __init__(self, app):
         self._app = app
         self._conn: Gio.DBusConnection | None = None
+        self.registered = False
         self._visible = True
         self._pixmap = self._load_pixmap()
         # 菜单项：(id, key, 动态 label 回调)
@@ -76,9 +77,11 @@ class TrayIcon:
             self._conn = Gio.bus_get_sync(Gio.BusType.SESSION, None)
             self._register_objects()
             self._register_with_watcher()
+            self.registered = True
             return True
         except Exception:
             self._conn = None
+            self.registered = False
             return False
 
     def _register_objects(self) -> None:
@@ -196,8 +199,8 @@ class TrayIcon:
                     "visible": GLib.Variant("b", True),
                 }
                 items.append(GLib.Variant("(ia{sv}av)", (item_id, props, [])))
-            layout = GLib.Variant("(ia{sv}av)", (0, {}, items))
-            invocation.return_value(GLib.Variant("((ia{sv}av))", (layout,)))
+            # 返回签名即 (ia{sv}av)：不要再包一层
+            invocation.return_value(GLib.Variant("(ia{sv}av)", (0, {}, items)))
         elif method == "GetGroupProperties":
             # 返回空属性集即可（AppIndicator 会按需 GetProperty/GetLayout）
             invocation.return_value(GLib.Variant("(a(ia{sv}))", ([])))

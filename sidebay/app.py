@@ -69,6 +69,10 @@ class SidebayApplication(Gtk.Application):
                 self.tray.start()
             except Exception:
                 self.tray = None
+            # 默认后台启动：不在 Dock/任务栏显示窗口，仅托盘图标；
+            # 通过托盘左键/菜单呼出侧边栏，托盘菜单退出
+            if self.tray is not None and self.tray.registered:
+                self.window.set_visible(False)
         else:
             self.window.present()
 
