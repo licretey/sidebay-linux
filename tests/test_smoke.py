@@ -431,3 +431,15 @@ def test_long_press_opens_settings(tmp_path):
     finally:
         SidebarWindow._on_long_press = orig_long_press
         win.run_dispose()
+
+
+@pytest.mark.smoke
+def test_tray_constructs(tmp_path):
+    """托盘图标：无 watcher 环境构造不崩溃、菜单项齐全（不调用 start 避免注册到真实会话总线）。"""
+    from sidebay.app import SidebayApplication
+    from sidebay.tray import TrayIcon
+
+    app = SidebayApplication(store=Store(path=str(tmp_path / "c.json")))
+    tray = TrayIcon(app)
+    assert [k for _i, k, _l in tray._items] == ["toggle", "settings", "quit"]
+    assert tray._props()["Id"].get_string() == "sidebay"
