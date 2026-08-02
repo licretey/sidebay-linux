@@ -258,7 +258,8 @@ class TrayIcon:
             invocation.return_value(GLib.Variant("(v)", (GLib.Variant("s", ""),)))
         elif method == "Event":
             try:
-                item_id = int(params[0]) if params and params.get_n_children() > 0 else -1
+                # pygobject 的 GLib.Variant 无 get_n_children()——用 len()
+                item_id = int(params[0]) if params and len(params) > 0 else -1
             except Exception:
                 item_id = -1
             if item_id > 0:
@@ -287,7 +288,18 @@ class TrayIcon:
                 elif key == "settings":
                     self._app.activate_action("app.open-settings", None)
                 elif key == "quit":
-                    self._app.quit()
+                    import os
+
+                    def _do_quit():
+                        # 先销毁窗口再 quit；延迟 os._exit 兜底确保进程结束
+                        # （Gtk quit 涉及窗口关闭链路，D-Bus dispatch 下可能延迟）
+                        win = getattr(self._app, "window", None)
+                        if win is not None:
+                            win.destroy()
+                        self._app.quit()
+                        GLib.timeout_add(500, lambda: (os._exit(0), False)[1])
+                        return False
+                    GLib.timeout_add(50, _do_quit)
                 return
 
     def _toggle(self) -> None:
