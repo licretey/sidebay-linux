@@ -53,14 +53,18 @@ Cached: 4000000 kB
     assert used == (16000000 - 2000000 - 500000 - 4000000) * 1024
 
 
-def test_net_dev_skips_lo():
+def test_net_dev_skips_lo_and_virtual():
     text = """Inter-|   Receive                                                |  Transmit
  face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
     lo: 1000       10    0    0    0     0          0         0     1000       10    0    0    0     0       0          0
   eth0: 5000        5    0    0    0     0          0         0     3000        3    0    0    0     0       0          0
+vethabc: 999        1    0    0    0     0          0         0      999        1    0    0    0     0       0          0
+ ztabc: 888        1    0    0    0     0          0         0      888        1    0    0    0     0       0          0
 """
     parsed = parse_net_dev(text)
     assert "lo" not in parsed
+    assert "vethabc" not in parsed  # 虚拟接口不计入
+    assert "ztabc" not in parsed  # ZeroTier 隧道不计入
     assert parsed["eth0"] == (5000, 3000)
 
 
@@ -68,9 +72,9 @@ def test_net_speeds():
     prev = {"eth0": (1000, 1000)}
     curr = {"eth0": (3000, 5000)}
     up, down = compute_net_speeds(prev, curr, dt=2.0)
-    # tuple 第一列 rx（计为上行 up），第二列 tx（计为下行 down）
-    assert up == 1000.0  # (3000-1000)/2
-    assert down == 2000.0  # (5000-1000)/2
+    # 语义：up=上行=发送(tx 第二列)，down=下行=接收(rx 第一列)
+    assert up == 2000.0  # (5000-1000)/2 = tx
+    assert down == 1000.0  # (3000-1000)/2 = rx
 
 
 def test_net_speeds_empty_prev():

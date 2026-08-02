@@ -60,6 +60,10 @@ def parse_meminfo(text: str) -> tuple[int, int]:
     return used, total
 
 
+# 虚拟/隧道接口不计入网速（VPN/容器/桥接会虚增流量）
+SKIP_IFACE_PREFIXES = ("veth", "docker", "br-", "virbr", "tun", "tap", "wg", "zt", "bond", "dummy")
+
+
 def parse_net_dev(text: str) -> dict[str, tuple[int, int]]:
     result: dict[str, tuple[int, int]] = {}
     for line in text.splitlines():
@@ -67,7 +71,7 @@ def parse_net_dev(text: str) -> dict[str, tuple[int, int]]:
             continue
         iface, rest = line.split(":", 1)
         iface = iface.strip()
-        if iface == "lo":
+        if iface == "lo" or iface.startswith(SKIP_IFACE_PREFIXES):
             continue
         cols = rest.split()
         if len(cols) >= 9:
@@ -83,13 +87,15 @@ def compute_net_speeds(
     curr: dict[str, tuple[int, int]],
     dt: float,
 ) -> tuple[float, float]:
+    """返回 (up, down) 字节/秒。up=上行=发送(tx)，down=下行=接收(rx)——与
+    macOS 原版（obytes/ibytes）及通行语义一致。"""
     if not prev or dt <= 0:
         return 0.0, 0.0
     up = down = 0.0
     for iface, (rx, tx) in curr.items():
         if iface in prev:
-            up += max(rx - prev[iface][0], 0)
-            down += max(tx - prev[iface][1], 0)
+            up += max(tx - prev[iface][1], 0)
+            down += max(rx - prev[iface][0], 0)
     return up / dt, down / dt
 
 
@@ -178,9 +184,12 @@ class SystemMonitor:
         try:
             st = os.statvfs("/")
             total = st.f_blocks * st.f_frsize
-            free = st.f_bavail * st.f_frsize
-            used = total - free
-            return (used / total * 100.0 if total > 0 else 0.0), total
+            # df 语义：pcent = used/(used+bavail)，used=blocks-bfree
+            # （bavail 排除保留块；直接 total-bavail 会把保留块算进已用，虚高 ~1-2 点）
+            used_for_pct = (st.f_blocks - st.f_bfree) * st.f_frsize
+            avail = st.f_bavail * st.f_frsize
+            denom = used_for_pct + avail
+            return (used_for_pct / denom * 100.0 if denom > 0 else 0.0), total
         except OSError:
             return 0.0, 0.0
 
