@@ -420,16 +420,3 @@ def test_long_press_opens_settings(tmp_path):
     finally:
         SidebarWindow._on_long_press = orig_long_press
         win.run_dispose()
-
-
-@pytest.mark.smoke
-def test_positioner_client_fallback(tmp_path):
-    """定位扩展客户端：扩展不可用（无 D-Bus 服务）时 move_window 返回 False（调用方回退 X11）。"""
-    from sidebay.positioner import PositionerClient
-
-    client = PositionerClient()
-    # 无扩展环境（测试沙箱无 GNOME Shell）：应优雅失败而非抛错
-    result = client.move_window(10, 20, 140, 600)
-    info = client.window_info()
-    assert result is False
-    assert info is None

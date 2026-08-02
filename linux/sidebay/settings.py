@@ -131,11 +131,11 @@ class SettingsWindow(Gtk.ApplicationWindow):
         self._pos_y_spin.set_width_chars(5)
         self._pos_y_spin.connect("value-changed", self._on_pos_y_changed)
         xy_box.append(self._pos_y_spin)
-        # 提示：默认（自动 XWayland）下 X/Y 均可移动；仅强制原生 Wayland 时 Y 不可用
+        # 提示：X/Y 均可实时移动（默认自动 XWayland；全高窗口下移会超屏被钳回，配高度控件使用）
         y_hint = Gtk.Label(label="(X/Y 实时移动)")
         y_hint.add_css_class("sb-tick-label")
         y_hint.set_opacity(0.6)
-        y_hint.set_tooltip_text("默认自动走 XWayland，X/Y 均可移动。仅当强制原生 Wayland（GDK_BACKEND=wayland）时垂直位置由系统管理")
+        y_hint.set_tooltip_text("X/Y 实时移动；窗口设短（高度控件）后任意位置可达")
         xy_box.append(y_hint)
         page.append(self._row(t("Position", lang) + " X/Y", xy_box))
 

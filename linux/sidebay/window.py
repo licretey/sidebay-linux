@@ -58,7 +58,6 @@ class SidebarWindow(Gtk.ApplicationWindow):
         overlay.add_css_class("sb-glass")
         self._font_overlay = overlay
         self._font_provider: Gtk.CssProvider | None = None
-        self._positioner = None  # 惰性初始化：GNOME 定位扩展客户端
         self._apply_font_css()
         self.set_child(overlay)
 
@@ -89,26 +88,15 @@ class SidebarWindow(Gtk.ApplicationWindow):
     # ---------- 手动定位 ----------
 
     def apply_position_xy(self, x: float, y: float) -> None:
-        """设置页实时定位：优先 GNOME 扩展（任意 X/Y，含 Wayland 垂直移动）；
-        扩展不可用时回退 X11（Wayland 下仅 X 有效）。"""
+        """设置页实时定位：XWayland/X11 下 XMoveResizeWindow 移动窗口（含 Y）。
+
+        注意：Mutter 初始放置窗口期（启动后数秒）移动会被覆盖，且全高窗口
+        下移会因超出屏幕被钳回顶部——配合「高度」控件使用短窗口即可任意定位。
+        """
         height = self.get_height() if self.get_height() > 0 else (
             self._workarea[3] if hasattr(self, "_workarea") else 800
         )
-        if self._positioner_move(x, y, height):
-            return
         self._x11_dock(int(self._current_width()), height, x=int(x), y=int(y))
-
-    def _positioner_move(self, x: float, y: float, height: float) -> bool:
-        try:
-            from sidebay.positioner import PositionerClient
-
-            if self._positioner is None:
-                self._positioner = PositionerClient()
-            return self._positioner.move_window(
-                x, y, int(self._current_width()), height
-            )
-        except Exception:
-            return False
 
     def apply_font_style(self) -> None:
         """设置页字号/字体变更后即时重应用（侧边栏与设置窗口均调用）。"""
@@ -237,9 +225,8 @@ class SidebarWindow(Gtk.ApplicationWindow):
                 y,
             )
         if self.store.settings.pos_x is not None and self.store.settings.pos_y is not None:
-            # 手动定位优先：直接放置到用户设定的坐标（扩展优先，回退 X11）
-            if not self._positioner_move(self.store.settings.pos_x, self.store.settings.pos_y, h):
-                self._x11_dock(width, h, x=int(self.store.settings.pos_x), y=int(self.store.settings.pos_y))
+            # 手动定位优先：直接放置到用户设定的坐标
+            self._x11_dock(width, h, x=int(self.store.settings.pos_x), y=int(self.store.settings.pos_y))
         else:
             self._x11_dock(width, h)
 

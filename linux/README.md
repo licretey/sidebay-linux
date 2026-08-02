@@ -124,13 +124,3 @@ i18n、Store 持久化、计时器、计算器、股票、键盘格式、模块�
 默认运行路径（Wayland 会话自动走 XWayland，Xorg 会话原生 X11）下，设置页
 「位置 X/Y」**完全生效**（实时移动窗口，含垂直 Y）。注意：Mutter 初始放置
 窗口期间（启动后数秒）移动可能被覆盖，应用会在 500ms/2s/5s 自动重试落位。
-
-**可选**：附带的 GNOME Shell 扩展（`org.sidebay.Positioner`）仅对强制原生
-Wayland（`GDK_BACKEND=wayland`）的场景有意义——原生 Wayland 客户端无法定位
-窗口，扩展经 `MetaWindow.move_resize_frame` 提供任意 X/Y：
-
-```bash
-cd linux && ./install-extension.sh   # 安装并启用（可选）
-```
-
-卸载：`gnome-extensions uninstall org.sidebay.Positioner`
