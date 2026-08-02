@@ -30,6 +30,8 @@ class Ring(Gtk.DrawingArea):
         self._value = 0.0
         self._color = color
         self._stroke = stroke
+        self._text = ""
+        self._text_size = 12.0
         self.set_size_request(size, size)
         self.set_draw_func(self._draw)
 
@@ -39,6 +41,15 @@ class Ring(Gtk.DrawingArea):
 
     def set_color(self, color: Gdk.RGBA) -> None:
         self._color = color
+        self.queue_draw()
+
+    def set_text(self, text: str) -> None:
+        """中心文本（如 '33%'）；空串不绘制。"""
+        self._text = text
+        self.queue_draw()
+
+    def set_text_size(self, size: float) -> None:
+        self._text_size = size
         self.queue_draw()
 
     def _draw(self, area: Gtk.DrawingArea, cr, width: int, height: int) -> None:
@@ -73,3 +84,12 @@ class Ring(Gtk.DrawingArea):
             cr.arc(cx, cy, r, a0, a1)
             cr.stroke()
             cr.set_line_width(self._stroke)
+
+        # 中心文本（对齐原版：数值绘制在环形中心）
+        if self._text:
+            cr.select_font_face("Sans", 0, 1)  # CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD
+            cr.set_font_size(self._text_size)
+            cr.set_source_rgba(1.0, 1.0, 1.0, 0.92)
+            x_bearing, y_bearing, tw, th, x_adv, y_adv = cr.text_extents(self._text)
+            cr.move_to(cx - tw / 2 - x_bearing, cy - th / 2 - y_bearing)
+            cr.show_text(self._text)

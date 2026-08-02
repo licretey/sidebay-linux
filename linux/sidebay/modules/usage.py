@@ -25,7 +25,6 @@ class UsageModule(Module):
         self.monitor = monitor
         self.kind = kind
         self._ring: Ring | None = None
-        self._label: Gtk.Label | None = None
         self._lang = store.settings.language
 
     def build(self) -> Gtk.Widget:
@@ -37,10 +36,8 @@ class UsageModule(Module):
         rgba = Gdk.RGBA()
         rgba.parse(f"rgb({int(self.COLORS[self.kind][0]*255)}, {int(self.COLORS[self.kind][1]*255)}, {int(self.COLORS[self.kind][2]*255)})")
         self._ring = Ring(rgba, size=44, stroke=5)
-        self._label = Gtk.Label(label="0%")
-        self._label.add_css_class("sb-tick-label")
+        self._ring.set_text("0%")  # 百分比直接绘制在环形中心（对齐原版 UI）
         box.append(self._ring)
-        box.append(self._label)
         return self._boxed(box)
 
     def on_tick(self) -> None:
@@ -53,4 +50,4 @@ class UsageModule(Module):
         elif self.kind == "Disk":
             value = self.monitor.last.disk_pct
         self._ring.set_value(value)
-        self._label.set_text(f"{value:.0f}%")
+        self._ring.set_text(f"{value:.0f}%")

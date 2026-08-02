@@ -39,16 +39,9 @@ class SidebarWindow(Gtk.ApplicationWindow):
         # 视口裁剪掉第一个模块以下的所有内容
         scroller.set_vexpand(True)
 
-        self._opacity = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL)
-        self._opacity.set_range(0.1, 1.0)
-        self._opacity.set_value(self.store.settings.opacity)
-        self._opacity.set_hexpand(True)
-        self._opacity.add_css_class("sb-slider")
-        self._opacity.connect("value-changed", self._on_opacity_changed)
-
+        # 透明度控制已移至设置页，侧边栏底部不再放滑块
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         outer.append(scroller)
-        outer.append(self._opacity)
 
         # 边缘拖拽改宽热区：叠在窗口根上，占 dock 对侧 ~4px 窄条
         overlay = Gtk.Overlay()
@@ -185,12 +178,6 @@ class SidebarWindow(Gtk.ApplicationWindow):
                 widget.set_size_request(-1, int(m.height_pct / 100 * window_height))
             self._modules.append(module)
             self._module_box.append(widget)
-
-    def _on_opacity_changed(self, scale: Gtk.Scale) -> None:
-        value = scale.get_value()
-        self.set_opacity(value)
-        self.store.settings.opacity = value
-        self.store.save()
 
     def _apply_position(self) -> None:
         display = self.get_display()

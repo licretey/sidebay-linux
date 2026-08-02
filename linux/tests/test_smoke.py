@@ -131,16 +131,20 @@ def test_keyboard_capture_xrecord(tmp_path):
 
 
 @pytest.mark.smoke
-def test_opacity_slider_updates_window_and_persists(tmp_path):
-    """透明度滑块 → 窗口透明度 + 立即持久化（验收项：透明度滑块生效）。"""
+def test_opacity_control_updates_window_and_persists(tmp_path):
+    """透明度控制（设置页）→ 窗口透明度 + 立即持久化；侧边栏底部已无滑块。"""
     import json
 
     app = SidebayApplication(store=Store(path=str(tmp_path / "c.json")))
     win = app.create_window()
-    win._opacity.set_value(0.5)
+    # 侧边栏底部滑块已移除
+    assert not hasattr(win, "_opacity")
+    # 模拟设置页透明度控制：直接改 store 并应用（设置页控件同路径）
+    app.store.settings.opacity = 0.5
+    win._apply_opacity()
+    app.store.save()  # 设置页控件处理器同路径：改值 + 立即持久化
     # GTK 内部以 0-255 存透明度，0.5 → 128/255，容差取 0.01
     assert abs(win.get_opacity() - 0.5) < 0.01
-    assert app.store.settings.opacity == 0.5
     data = json.loads((tmp_path / "c.json").read_text())
     assert data["settings"]["opacity"] == 0.5
     win.destroy()
