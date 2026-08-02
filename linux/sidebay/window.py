@@ -31,6 +31,9 @@ class SidebarWindow(Gtk.ApplicationWindow):
             self.set_keep_above(True)
         self.set_resizable(False)
         self.set_title("Sidebay")
+        # 窗口图标：匹配 flatpak 安装的图标名（org.sidebay.SideBay）；直跑无主题图标时忽略
+        if hasattr(self, "set_icon_name"):
+            self.set_icon_name("org.sidebay.SideBay")
 
         self._module_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         scroller = Gtk.ScrolledWindow()

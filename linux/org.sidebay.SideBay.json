@@ -34,7 +34,9 @@
         "cp -r sidebay/* /app/lib/sidebay/",
         "cp -r tests /app/lib/ 2>/dev/null || true",
         "printf '#!/bin/sh\\nexec env PYTHONPATH=\"/app/lib:$(python3 -c \"import site; print(site.getsitepackages()[0])\")\" python3 -m sidebay \"$@\"\\n' > /app/bin/sidebay",
-        "chmod +x /app/bin/sidebay"
+        "chmod +x /app/bin/sidebay",
+        "install -Dm644 logos/sidebay-512.png /app/share/icons/hicolor/512x512/apps/org.sidebay.SideBay.png",
+        "install -Dm644 org.sidebay.SideBay.desktop /app/share/applications/org.sidebay.SideBay.desktop"
       ],
       "sources": [
         {

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Sidebay
+Comment=Dynamic modular sidebar
+Exec=sidebay
+Icon=org.sidebay.SideBay
+Terminal=false
+Categories=Utility;
