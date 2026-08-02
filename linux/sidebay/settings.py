@@ -354,8 +354,9 @@ class SettingsWindow(Gtk.ApplicationWindow):
                      lambda sb, mid=m.module_id: self.store.set_height_pct(mid, sb.get_value()))
         box.append(spin)
 
-        # 采集频率：1/2/5/10 秒（None = 默认 1s）
-        freq_options = [(1.0, "1s"), (2.0, "2s"), (5.0, "5s"), (10.0, "10s")]
+        # 采集频率：秒级 + 分钟级（None = 默认 1s）
+        freq_options = [(1.0, "1s"), (2.0, "2s"), (5.0, "5s"), (10.0, "10s"),
+                        (600.0, "10m"), (1200.0, "20m"), (3600.0, "60m")]
         freq = Gtk.DropDown(model=Gtk.StringList.new([l for _, l in freq_options]))
         current_freq = m.refresh_interval or 1.0
         freq.set_selected(next((i for i, (v, _) in enumerate(freq_options) if v == current_freq), 0))
