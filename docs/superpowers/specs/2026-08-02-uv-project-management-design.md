@@ -14,8 +14,9 @@ Sidebay Linux 版（Python + GTK4，11 模块，72 测试）当前环境管理�
 |---|---|
 | 运行时入口 | `run.sh` 改用 `uv run --no-sync sidebay`（用户选择；接受 ~100-300ms 启动开销） |
 | gi 来源 | 系统包（`python3-gi`/`python3-gi-cairo`，apt 安装）——`[tool.uv] python-system-site-packages = true` 桥接，替代 .pth hack |
-| venv 基 Python | 系统 Python 3.14——`python-preference = "system"` 强制（uv 自带 Python 无系统 gi） |
-| 依赖 | 运行时零 pip 依赖（纯标准库 + 系统 gi）；`[dependency-groups] dev = ["pytest", "python-xlib"]`（python-xlib 为键盘模块懒加载可选依赖） |
+| venv 基 Python | 系统 Python 3.14——`python-preference = "system"`（uv 自带 Python 无系统 gi） |
+| system-site-packages | **实现修订（2026-08-02）**：uv 0.11.7 无 `python-system-site-packages` 配置键（astral-sh/uv#5737 未落地），改为两步创建：`uv venv --system-site-packages && uv sync`（flag 存于 pyvenv.cfg，sync 保留）；`run.sh` 守卫校验该 flag，缺失自动重建 |
+| 打包 | **实现修订**：`[tool.uv] package = true`——否则 uv 按 virtual 工程处理，`sidebay` console script 不安装，`uv run sidebay` 失败 |
 | uv.lock | 提交（应用可复现性） |
 | Flatpak | 不变（沙盒内 pip 构建，不依赖 uv） |
 
@@ -51,14 +52,16 @@ dev = [
 
 [tool.uv]
 python-preference = "system"
-python-system-site-packages = true
+package = true  # 实现修订：确保 console script 安装（否则 uv 按 virtual 处理）
 ```
+
+（实现修订：`python-system-site-packages` 键在 uv 0.11.7 不存在，system-site-packages 由 `uv venv --system-site-packages` 两步创建提供。）
 
 ## 二、命令约定
 
 | 操作 | 命令 |
 |---|---|
-| 重建环境 | `cd linux && uv sync` |
+| 重建环境 | `cd linux && uv venv --system-site-packages && uv sync`（两步；`./run.sh` 首次运行自动执行） |
 | 运行应用 | `./run.sh`（= `uv run --no-sync sidebay`） |
 | 纯测试 | `uv run pytest` |
 | xvfb 冒烟 | `GDK_BACKEND=x11 xvfb-run -a uv run pytest` |
