@@ -286,7 +286,9 @@ class TrayIcon:
                 if key == "toggle":
                     self._toggle()
                 elif key == "settings":
-                    self._app.activate_action("app.open-settings", None)
+                    # activate_action 在 D-Bus 回调上下文中不触发（GIO
+                    # re-entrancy）——直接调用动作处理函数（与长按等效）
+                    self._app._on_open_settings()
                 elif key == "quit":
                     import os
 
