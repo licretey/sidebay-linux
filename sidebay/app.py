@@ -57,24 +57,24 @@ class SidebayApplication(Gtk.Application):
         )
 
     def do_activate(self) -> None:
-        if self.window is None:
-            self.create_window()
-            # 后台运行：所有窗口隐藏（托盘切换）后应用不退出
-            self.hold()
-            # 顶部面板托盘图标（无 StatusNotifierWatcher 时静默降级）
-            try:
-                from sidebay.tray import TrayIcon
-
-                self.tray = TrayIcon(self)
-                self.tray.start()
-            except Exception:
-                self.tray = None
-            # 默认后台启动：不在 Dock/任务栏显示窗口，仅托盘图标；
-            # 通过托盘左键/菜单呼出侧边栏，托盘菜单退出
-            if self.tray is not None and self.tray.registered:
-                self.window.set_visible(False)
-        else:
+        if self.window is not None:
             self.window.present()
+            return
+        # 后台运行：应用 hold 保活，窗口全部隐藏后不退出
+        self.hold()
+        self._start_tray()
+        if self.tray is None or not self.tray.registered:
+            # 无托盘（无 AppIndicator 扩展等）：回退为直接显示窗口
+            self.create_window()
+
+    def _start_tray(self) -> None:
+        try:
+            from sidebay.tray import TrayIcon
+
+            self.tray = TrayIcon(self)
+            self.tray.start()
+        except Exception:
+            self.tray = None
 
     def _on_open_settings(self, *_a) -> None:
         from sidebay.settings import SettingsWindow

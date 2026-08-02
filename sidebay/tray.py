@@ -65,10 +65,15 @@ class TrayIcon:
         self._pixmap = self._load_pixmap()
         # 菜单项：(id, key, 动态 label 回调)
         self._items = [
-            (1, "toggle", lambda: "隐藏侧边栏" if self._visible else "显示侧边栏"),
+            (1, "toggle", self._toggle_label),
             (2, "settings", lambda: "设置"),
             (3, "quit", lambda: "退出"),
         ]
+
+    def _toggle_label(self) -> str:
+        if getattr(self._app, "window", None) is None:
+            return "显示侧边栏"
+        return "隐藏侧边栏" if self._visible else "显示侧边栏"
 
     # ---------- 启动 ----------
 
@@ -182,7 +187,7 @@ class TrayIcon:
 
     def _on_sni(self, method, invocation) -> None:
         if method == "Activate":
-            self._toggle()
+            # 左键不操作：全部交互走右键菜单
             invocation.return_value(None)
         elif method in ("SecondaryActivate", "ContextMenu"):
             invocation.return_value(None)
@@ -199,8 +204,10 @@ class TrayIcon:
                     "visible": GLib.Variant("b", True),
                 }
                 items.append(GLib.Variant("(ia{sv}av)", (item_id, props, [])))
-            # 返回签名即 (ia{sv}av)：不要再包一层
-            invocation.return_value(GLib.Variant("(ia{sv}av)", (0, {}, items)))
+            # GIO 对单出参方法期望回复为 元组包裹 的签名：出参类型 (ia{sv}av)
+            # → 回复类型 ((ia{sv}av))。直接内联构建，避免 Variant 嵌套歧义。
+            reply = GLib.Variant("((ia{sv}av))", ((0, {}, items),))
+            invocation.return_value(reply)
         elif method == "GetGroupProperties":
             # 返回空属性集即可（AppIndicator 会按需 GetProperty/GetLayout）
             invocation.return_value(GLib.Variant("(a(ia{sv}))", ([])))
@@ -234,6 +241,9 @@ class TrayIcon:
     def _toggle(self) -> None:
         win = getattr(self._app, "window", None)
         if win is None:
+            # 启动时不建窗口（无 Dock 痕迹）：首次呼出时懒创建
+            self._app.create_window()
+            self._visible = True
             return
         self._visible = not self._visible
         if self._visible:
