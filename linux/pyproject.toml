@@ -1,0 +1,22 @@
+[project]
+name = "sidebay"
+version = "1.0.0"
+description = "Dynamic modular sidebar for Linux (GNOME)"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+sidebay = "sidebay.main:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=9",
+    "python-xlib>=0.33",
+]
+
+[tool.uv]
+python-preference = "system"
+# NOTE: `python-system-site-packages` (as in the plan) does not exist in uv 0.11.x —
+# pyproject support for system site packages was never implemented (astral-sh/uv#5737).
+# System site packages (gi) are enabled by creating the venv with
+# `uv venv --system-site-packages` before `uv sync`; uv sync preserves the flag.
