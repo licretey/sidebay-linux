@@ -74,12 +74,12 @@ MENU_XML = """
 <node>
   <interface name="com.canonical.dbusmenu">
     <method name="GetLayout"><arg type="i" direction="in"/><arg type="i" direction="in"/><arg type="as" direction="in"/><arg type="u" name="revision" direction="out"/><arg type="(ia{sv}av)" name="layout" direction="out"/></method>
-    <method name="GetGroupProperties"><arg type="ai" direction="in"/><arg type="as" direction="in"/><arg type="a(ia{sv})" direction="out"/></method>
-    <method name="GetProperty"><arg type="i" direction="in"/><arg type="s" direction="in"/><arg type="v" direction="out"/></method>
-    <method name="Event"><arg type="i" direction="in"/><arg type="s" direction="in"/><arg type="v" direction="in"/><arg type="u" direction="in"/></method>
-    <method name="EventGroup"><arg type="a(isvu)" direction="in"/><arg type="u" direction="out"/></method>
-    <method name="AboutToShow"><arg type="i" direction="in"/><arg type="b" direction="out"/></method>
-    <method name="AboutToShowGroup"><arg type="ai" direction="in"/><arg type="ai" direction="out"/></method>
+    <method name="GetGroupProperties"><arg type="ai" name="ids" direction="in"/><arg type="as" name="propertyNames" direction="in"/><arg type="a(ia{sv})" name="properties" direction="out"/></method>
+    <method name="GetProperty"><arg type="i" name="id" direction="in"/><arg type="s" name="name" direction="in"/><arg type="v" name="value" direction="out"/></method>
+    <method name="Event"><arg type="i" name="id" direction="in"/><arg type="s" name="eventId" direction="in"/><arg type="v" name="data" direction="in"/><arg type="u" name="timestamp" direction="in"/></method>
+    <method name="EventGroup"><arg type="a(isvu)" name="events" direction="in"/><arg type="ai" name="idErrors" direction="out"/></method>
+    <method name="AboutToShow"><arg type="i" name="id" direction="in"/><arg type="b" name="needUpdate" direction="out"/></method>
+    <method name="AboutToShowGroup"><arg type="ai" name="ids" direction="in"/><arg type="ai" name="updatesNeeded" direction="out"/><arg type="ai" name="idErrors" direction="out"/></method>
   </interface>
 </node>
 """
@@ -265,13 +265,15 @@ class TrayIcon:
                 self._on_menu_click(item_id)
             invocation.return_value(None)
         elif method in ("EventGroup", "AboutToShow", "AboutToShowGroup"):
+            empty = GLib.Variant.new_array(GLib.VariantType("i"), [])
             if method == "EventGroup":
-                invocation.return_value(GLib.Variant("(u)", (0,)))
+                # 出参 (ai idErrors)
+                invocation.return_value(GLib.Variant("(ai)", (empty,)))
             elif method == "AboutToShow":
                 invocation.return_value(GLib.Variant("(b)", (True,)))
             else:
-                empty = GLib.Variant.new_array(GLib.VariantType("i"), [])
-                invocation.return_value(GLib.Variant("(ai)", (empty,)))
+                # 出参 (ai updatesNeeded, ai idErrors)
+                invocation.return_value(GLib.Variant("(aiai)", (empty, empty)))
         else:
             invocation.return_error_literal(Gio.DBusError.NOT_SUPPORTED, method)
 
