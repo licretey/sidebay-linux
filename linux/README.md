@@ -16,6 +16,8 @@ Debian/Ubuntu 直接运行所需包：
 sudo apt install python3 python3-gi python3-gi-cairo gir1.2-gtk-4.0 xvfb   # xvfb 仅用于无显示环境冒烟测试
 ```
 
+uv 安装指引：https://docs.astral.sh/uv/ （或 `pipx install uv`）。
+
 python-xlib（键盘监视模块需要）由 uv 的 dev 依赖组随 `uv sync` 自动安装。
 
 ## 安装
