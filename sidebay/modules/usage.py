@@ -26,6 +26,7 @@ class UsageModule(Module):
         self.kind = kind
         self._ring: Ring | None = None
         self._lang = store.settings.language
+        self._last_value: float | None = None
 
     def build(self) -> Gtk.Widget:
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
@@ -49,5 +50,9 @@ class UsageModule(Module):
             value = last.mem_used / last.mem_total * 100.0 if last.mem_total else 0.0
         elif self.kind == "Disk":
             value = self.monitor.last.disk_pct
+        # 值未变时跳过更新（避免每 tick 触发重绘）
+        if value == self._last_value:
+            return
+        self._last_value = value
         self._ring.set_value(value)
         self._ring.set_text(f"{value:.0f}%")

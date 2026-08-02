@@ -132,6 +132,7 @@ class SystemMonitor:
         self.proc_root = Path(proc_root)
         self.sys_root = Path(sys_root)
         self.fan_simulated = False
+        self.last = Stats()  # 复用实例：tick 就地更新，避免每秒新建对象
         self._prev_cpu: CpuSample | None = None
         self._prev_net: dict[str, tuple[int, int]] = {}
         self._last_net_time = 0.0
@@ -167,11 +168,17 @@ class SystemMonitor:
         else:
             self.fan_simulated = False
 
-        return Stats(
-            cpu=cpu, gpu=gpu, mem_used=mem_used, mem_total=mem_total,
-            disk_pct=disk_pct, disk_total=disk_total,
-            net_up=net_up, net_down=net_down, fan_rpm=fan,
-        )
+        # 就地更新复用实例（减少每秒分配）
+        self.last.cpu = cpu
+        self.last.gpu = gpu
+        self.last.mem_used = mem_used
+        self.last.mem_total = mem_total
+        self.last.disk_pct = disk_pct
+        self.last.disk_total = disk_total
+        self.last.net_up = net_up
+        self.last.net_down = net_down
+        self.last.fan_rpm = fan
+        return self.last
 
     @staticmethod
     def _read(path: Path) -> str:

@@ -9,14 +9,24 @@ gi.require_version("Gdk", "4.0")
 from gi.repository import Gdk, Gtk
 
 
+_COLOR_CACHE: dict[tuple, tuple] = {}
+
+
 def ring_segment_colors(base: tuple[float, float, float, float], n: int) -> list[tuple[float, float, float, float]]:
-    """从 base 亮度 40% 渐变到满亮，n 段颜色。"""
+    """从 base 亮度 40% 渐变到满亮，n 段颜色；按 (base, n) 缓存（每帧重绘复用）。"""
+    key = (base, n)
+    cached = _COLOR_CACHE.get(key)
+    if cached is not None:
+        return cached
     if n <= 1:
-        return [base]
-    return [
-        tuple(min(c * (0.4 + 0.6 * i / (n - 1)), 1.0) for c in base[:3]) + (base[3],)
-        for i in range(n)
-    ]
+        result = [base]
+    else:
+        result = [
+            tuple(min(c * (0.4 + 0.6 * i / (n - 1)), 1.0) for c in base[:3]) + (base[3],)
+            for i in range(n)
+        ]
+    _COLOR_CACHE[key] = result
+    return result
 
 
 def ring_arc_end(value: float) -> float:

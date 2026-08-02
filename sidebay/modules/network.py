@@ -36,6 +36,7 @@ class NetworkModule(Module):
         self._up: Gtk.Label | None = None
         self._down: Gtk.Label | None = None
         self._lang = store.settings.language
+        self._last: tuple[float, float] | None = None
 
     def build(self) -> Gtk.Widget:
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
