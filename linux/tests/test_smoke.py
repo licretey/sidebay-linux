@@ -34,7 +34,8 @@ def test_settings_window_header_add_module_and_close_callback(tmp_path):
 
     store = Store(path=str(tmp_path / "c.json"))
     app = SidebayApplication(store=store)
-    app.register()
+    # 不 register：同进程内其他测试已导出同一 D-Bus 对象；且未注册应用创建
+    # 窗口在 GTK 4.22 下偶发 gtk_window_set_application 段错误
     closed = []
     win = SettingsWindow(app, store, on_close_callback=lambda: closed.append(True))
     # 自绘暗色头部存在（非 GNOME headerbar）
@@ -165,10 +166,16 @@ def test_stock_module_apply_quote_sets_color_class(tmp_path):
 
 
 @pytest.mark.smoke
-def test_all_module_types_build(tmp_path):
+def test_all_module_types_build(tmp_path, monkeypatch):
     from sidebay.modules.registry import MODULE_TYPES, create_module
     from sidebay.store import Store
 
+    # Stock 模块 build 会启动真实网络线程；测试沙箱的 SSL 握手偶发段错误，
+    # 使取数立即失败（走 OSError 分支，不触网）
+    def _offline(*_a, **_k):
+        raise OSError("offline test")
+
+    monkeypatch.setattr("sidebay.modules.stock.urllib.request.urlopen", _offline)
     store = Store(path=str(tmp_path / "c.json"))
     widgets = []
     try:
@@ -413,3 +420,16 @@ def test_long_press_opens_settings(tmp_path):
     finally:
         SidebarWindow._on_long_press = orig_long_press
         win.run_dispose()
+
+
+@pytest.mark.smoke
+def test_positioner_client_fallback(tmp_path):
+    """定位扩展客户端：扩展不可用（无 D-Bus 服务）时 move_window 返回 False（调用方回退 X11）。"""
+    from sidebay.positioner import PositionerClient
+
+    client = PositionerClient()
+    # 无扩展环境（测试沙箱无 GNOME Shell）：应优雅失败而非抛错
+    result = client.move_window(10, 20, 140, 600)
+    info = client.window_info()
+    assert result is False
+    assert info is None

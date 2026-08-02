@@ -118,3 +118,19 @@ i18n、Store 持久化、计时器、计算器、股票、键盘格式、模块�
 - **渲染器默认 `cairo`**：应用默认以 `GSK_RENDERER=cairo` 运行（无 GPU 依赖、
   内存策略稳定，实测空闲 RSS ~93MB）。如需 GPU 加速可覆盖：
   `GSK_RENDERER=gl ./run.sh` 或 `flatpak run --env=GSK_RENDERER=gl org.sidebay.SideBay`。
+
+## 位置控制（任意 X/Y 坐标）
+
+GNOME Wayland 协议禁止客户端（含 XWayland）控制窗口垂直位置（Y 固定顶部）。
+要获得**完整 X/Y 坐标控制**，安装附带的 GNOME Shell 定位扩展：
+
+```bash
+cd linux && ./install-extension.sh   # 安装并启用 org.sidebay.Positioner
+```
+
+扩展在会话总线导出 `org.sidebay.Positioner`，Sidebay 应用经 D-Bus 调用
+`MetaWindow.move_resize_frame` 实现任意定位。安装后设置页「位置 X/Y」完全生效
+（实时移动）。扩展不可用时自动降级：X 坐标可移动；Y 固定顶部（Xorg 会话下
+X/Y 均完全可用，无需扩展）。
+
+卸载：`gnome-extensions uninstall org.sidebay.Positioner`

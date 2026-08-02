@@ -1,0 +1,7 @@
+{
+  "uuid": "org.sidebay.Positioner",
+  "name": "Sidebay Positioner",
+  "description": "Allows Sidebay to position its window at arbitrary X/Y coordinates (including vertical) on GNOME Shell.",
+  "shell-version": ["45", "46", "47", "48", "49"],
+  "url": "https://sunnydodo.top"
+}
