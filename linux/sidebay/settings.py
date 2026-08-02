@@ -42,11 +42,12 @@ class SettingsWindow(Gtk.ApplicationWindow):
 
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         root.add_css_class("sb-glass")
-        root.append(self._build_header())
-        notebook = Gtk.Notebook()
-        notebook.append_page(self._build_general(), Gtk.Label(label="通用"))
-        notebook.append_page(self._build_modules(), Gtk.Label(label="模块"))
-        root.append(notebook)
+        self._notebook = Gtk.Notebook()
+        self._notebook.append_page(self._build_general(), Gtk.Label(label="通用"))
+        self._notebook.append_page(self._build_modules(), Gtk.Label(label="模块"))
+        self._notebook.set_show_tabs(False)  # 标签行自绘：关闭按钮 + 通用/模块同一行
+        root.append(self._build_tab_row())
+        root.append(self._notebook)
         self.set_child(root)
         self._font_provider: Gtk.CssProvider | None = None
         self._apply_self_font()
@@ -66,21 +67,41 @@ class SettingsWindow(Gtk.ApplicationWindow):
             self._font_provider.load_from_string(f"* {{ font-family: '{family}'; }}")
             self.get_style_context().add_provider(self._font_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
-    # ---------- 头部 ----------
+    # ---------- 标签行（关闭按钮 + 通用/模块，同一行） ----------
 
-    def _build_header(self) -> Gtk.Box:
-        header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        header.add_css_class("sb-settings-header")
-        title = Gtk.Label(label=t("SettingsTitle", self.store.settings.language))
-        title.set_halign(Gtk.Align.START)
-        header.append(title)
+    def _build_tab_row(self) -> Gtk.Box:
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        row.add_css_class("sb-settings-header")
+        row.set_margin_top(6)
+        row.set_margin_bottom(6)
+        row.set_margin_start(10)
+        row.set_margin_end(10)
+
         close = Gtk.Button()
         close.add_css_class("sb-settings-close")
-        close.set_halign(Gtk.Align.END)
-        close.set_hexpand(True)
+        close.set_valign(Gtk.Align.CENTER)
         close.connect("clicked", lambda *_: self.close())
-        header.append(close)
-        return header
+        row.append(close)
+
+        self._tab_general = self._tab_button("通用", 0)
+        self._tab_modules = self._tab_button("模块", 1)
+        row.append(self._tab_general)
+        row.append(self._tab_modules)
+        return row
+
+    def _tab_button(self, label: str, page: int) -> Gtk.Button:
+        button = Gtk.ToggleButton(label=label)
+        button.add_css_class("sb-tab")
+        button.set_active(page == 0)
+        button.connect("toggled", self._on_tab_toggled, page)
+        return button
+
+    def _on_tab_toggled(self, button: Gtk.ToggleButton, page: int) -> None:
+        if button.get_active():
+            self._notebook.set_current_page(page)
+        else:
+            # 保持互斥：至少一个标签处于激活态
+            button.set_active(True)
 
     # ---------- 通用页 ----------
 
