@@ -138,3 +138,24 @@ def test_settings_new_fields_defaults(tmp_path):
     assert s.settings.font_size == "medium"
     assert s.settings.height is None
     assert s.settings.font_family == ""
+
+
+def test_refresh_interval_roundtrip(tmp_path):
+    """模块采集频率持久化往返。"""
+    path = str(tmp_path / "config.json")
+    s1 = Store(path=path)
+    mid = s1.modules[0].module_id
+    s1.set_refresh_interval(mid, 5.0)
+    s1.save()
+    s2 = Store(path=path)
+    s2.load()
+    assert s2.modules[0].refresh_interval == 5.0
+
+
+def test_refresh_interval_defaults_none(tmp_path):
+    """旧配置无频率字段时缺省 None（默认 1s）。"""
+    path = tmp_path / "config.json"
+    path.write_text('{"modules": [{"type": "CPU", "module_id": "m1"}], "settings": {}}')
+    s = Store(path=str(path))
+    s.load()
+    assert s.modules[0].refresh_interval is None

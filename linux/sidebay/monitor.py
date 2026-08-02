@@ -118,6 +118,9 @@ class SystemMonitor:
         self._last_net_time = 0.0
         # nvidia-smi 存在性只探测一次：无独显的机器不必每秒 fork+exec 一次
         self._has_nvidia_smi = shutil.which("nvidia-smi") is not None
+        # nvidia-smi fork 成本高：结果缓存 3s，避免每秒起进程
+        self._gpu_cache_value = 0.0
+        self._gpu_cache_time = 0.0
 
     def tick(self) -> Stats:
         cpu_text = self._read(self.proc_root / "stat")
@@ -183,11 +186,18 @@ class SystemMonitor:
                 return busy
         if not self._has_nvidia_smi:
             return 0.0
+        # 节流：nvidia-smi fork 至少间隔 3s（sysfs 读取路径不受影响）
+        now = time.time()
+        if now - self._gpu_cache_time < 3.0:
+            return self._gpu_cache_value
         try:
             out = subprocess.run(
                 ["nvidia-smi", "--query-gpu=utilization.gpu", "--format=csv,noheader,nounits"],
                 capture_output=True, text=True, timeout=2,
             )
-            return parse_gpu_busy(out.stdout.strip().splitlines()[0]) if out.stdout.strip() else 0.0
+            value = parse_gpu_busy(out.stdout.strip().splitlines()[0]) if out.stdout.strip() else 0.0
         except (OSError, subprocess.TimeoutExpired, IndexError):
-            return 0.0
+            value = 0.0
+        self._gpu_cache_value = value
+        self._gpu_cache_time = now
+        return value

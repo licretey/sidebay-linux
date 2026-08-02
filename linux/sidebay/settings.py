@@ -354,6 +354,17 @@ class SettingsWindow(Gtk.ApplicationWindow):
                      lambda sb, mid=m.module_id: self.store.set_height_pct(mid, sb.get_value()))
         box.append(spin)
 
+        # 采集频率：1/2/5/10 秒（None = 默认 1s）
+        freq_options = [(1.0, "1s"), (2.0, "2s"), (5.0, "5s"), (10.0, "10s")]
+        freq = Gtk.DropDown(model=Gtk.StringList.new([l for _, l in freq_options]))
+        current_freq = m.refresh_interval or 1.0
+        freq.set_selected(next((i for i, (v, _) in enumerate(freq_options) if v == current_freq), 0))
+        freq.connect("notify::selected",
+                     lambda dd, mid=m.module_id, opts=freq_options:
+                     self.store.set_refresh_interval(mid, float(opts[dd.get_selected()][0])))
+        freq.set_tooltip_text("采集频率")
+        box.append(freq)
+
         delete = Gtk.Button(label="🗑")
         delete.add_css_class("sb-settings-close")
         delete.connect("clicked", lambda *_, mid=m.module_id: self._remove_module(mid))

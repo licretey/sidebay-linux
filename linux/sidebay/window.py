@@ -1,5 +1,7 @@
 """无装饰、贴屏边缘、全高的主侧边栏窗口。"""
 
+import time
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -144,9 +146,11 @@ class SidebarWindow(Gtk.ApplicationWindow):
 
     def _tick(self) -> bool:
         self._monitor.last = self._monitor.tick()
+        now = time.monotonic()
         for module in getattr(self, "_modules", []):
             try:
-                module.on_tick()
+                if module.should_update(now):
+                    module.on_tick()
             except Exception:
                 pass
         return True
@@ -171,6 +175,8 @@ class SidebarWindow(Gtk.ApplicationWindow):
             except ValueError:
                 continue
             widget = module.build()
+            # 采集频率：模块行设置值（None = 默认 1s）
+            module.refresh_interval = m.refresh_interval or 1.0
             # 模块高度：height_pct > 0 时按侧边栏高度百分比，否则用 base._boxed 的 100px 默认
             if m.height_pct and m.height_pct > 0:
                 work_h = self._workarea[3] if hasattr(self, "_workarea") else 100

@@ -13,6 +13,8 @@ class AppModule:
     type: str = ""
     custom_data: str = ""
     height_pct: float | None = None
+    # 采集频率（秒）；None = 默认 1s
+    refresh_interval: float | None = None
 
 
 @dataclass
@@ -107,5 +109,12 @@ class Store:
         for m in self.modules:
             if m.module_id == module_id:
                 m.height_pct = pct if pct and pct > 0 else None
+                self.save()
+                return
+
+    def set_refresh_interval(self, module_id: str, interval: float | None) -> None:
+        for m in self.modules:
+            if m.module_id == module_id:
+                m.refresh_interval = interval if interval and interval > 0 else None
                 self.save()
                 return

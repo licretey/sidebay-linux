@@ -14,16 +14,25 @@ class Module(ABC):
     def __init__(self, store: Store, module_id: str):
         self.store = store
         self.module_id = module_id
+        self.refresh_interval = 1.0  # 采集频率（秒），由窗口 tick 按此节流
+        self._last_update = 0.0
 
     @abstractmethod
     def build(self) -> Gtk.Widget:
         """构建模块视图，仅调用一次。"""
 
     def on_tick(self) -> None:
-        """每秒轮询钩子（可选重写）。"""
+        """轮询钩子（按 refresh_interval 节流调用，默认 1s）。"""
 
     def on_destroy(self) -> None:
         """清理定时器/连接（可选重写）。"""
+
+    def should_update(self, now: float) -> bool:
+        """窗口 tick（1s）按模块频率节流：到期才调用 on_tick。"""
+        if now - self._last_update >= self.refresh_interval:
+            self._last_update = now
+            return True
+        return False
 
     def _boxed(self, child: Gtk.Widget) -> Gtk.Widget:
         """统一包装：固定高度、CSS 类、destroy 钩子。"""
