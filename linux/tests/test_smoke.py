@@ -431,26 +431,3 @@ def test_long_press_opens_settings(tmp_path):
     finally:
         SidebarWindow._on_long_press = orig_long_press
         win.run_dispose()
-
-
-@pytest.mark.smoke
-def test_settings_logo_displayed(tmp_path):
-    """设置页通用页顶部显示 logo（linux/logos/sidebay.png 存在时）。"""
-    from pathlib import Path
-
-    from sidebay.settings import SettingsWindow
-
-    logo = Path(__file__).resolve().parent.parent / "logos" / "sidebay.png"
-    if not logo.exists():
-        pytest.skip("logos/sidebay.png missing")
-
-    store = Store(path=str(tmp_path / "c.json"))
-    app = SidebayApplication(store=store)
-    win = SettingsWindow(app, store, on_close_callback=lambda: None)
-    # 通用页首个子项应为 logo 图片
-    tab_row = win.get_child().get_first_child()
-    notebook = tab_row.get_next_sibling()
-    general_page = notebook.get_nth_page(0)
-    first = general_page.get_first_child()
-    assert first is not None and type(first).__name__ == "Image"
-    win.run_dispose()

@@ -1,7 +1,5 @@
 """设置窗口：自绘暗色头部 + 通用/模块两页，所有改动立即持久化。"""
 
-from pathlib import Path
-
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -120,14 +118,6 @@ class SettingsWindow(Gtk.ApplicationWindow):
         page.set_margin_bottom(16)
         page.set_margin_start(16)
         page.set_margin_end(16)
-
-        # 顶部 Logo（linux/logos/sidebay.png，缺失时跳过）
-        logo_path = Path(__file__).resolve().parent.parent / "logos" / "sidebay.png"
-        if logo_path.exists():
-            logo = Gtk.Image.new_from_file(str(logo_path))
-            logo.set_size_request(120, 96)
-            logo.set_halign(Gtk.Align.CENTER)
-            page.append(logo)
 
         # 语言
         self._lang_dropdown = Gtk.DropDown(model=Gtk.StringList.new(_LANGS))
