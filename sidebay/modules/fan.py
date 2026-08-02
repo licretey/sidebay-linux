@@ -36,7 +36,7 @@ class FanModule(Module):
         self._rpm_label.add_css_class("sb-tick-label")
         box.append(self._rpm_label)
 
-        self._timer = GLib.timeout_add(30, self._advance)
+        self._timer = GLib.timeout_add(100, self._advance)
         return self._boxed(box)
 
     def _advance(self) -> bool:

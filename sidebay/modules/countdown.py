@@ -3,7 +3,7 @@
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import GLib, Gtk
+from gi.repository import Gtk
 
 from sidebay.i18n import t
 from sidebay.modules.base import Module
@@ -42,8 +42,7 @@ class CountdownModule(Module):
         super().__init__(store, module_id)
         self.state = CountdownState()
         self._lang = store.settings.language
-        self._timer: int | None = None
-
+        
     def build(self) -> Gtk.Widget:
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         title = Gtk.Label(label=t("Countdown", self._lang))
@@ -75,7 +74,6 @@ class CountdownModule(Module):
         controls.append(reset_btn)
         box.append(controls)
 
-        self._timer = GLib.timeout_add(1000, self._on_second)
         return self._boxed(box)
 
     def _start_edit(self) -> None:
@@ -104,13 +102,8 @@ class CountdownModule(Module):
         self._toggle_btn.set_label("▶")
         self._time_label.set_text(self.state.time_string())
 
-    def _on_second(self) -> bool:
+    def on_tick(self) -> None:
+        # 窗口 tick 每秒驱动（refresh_interval 强制 1s，见 window.rebuild_modules）
         if self.state.tick():
             self._toggle_btn.set_label("▶")
         self._time_label.set_text(self.state.time_string())
-        return True
-
-    def on_destroy(self) -> None:
-        if self._timer is not None:
-            GLib.source_remove(self._timer)
-            self._timer = None

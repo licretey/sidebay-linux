@@ -68,7 +68,8 @@ class StockModule(Module):
             if m.module_id == module_id:
                 self.symbol = m.custom_data or "sh000001"
         self._lang = store.settings.language
-        self._timer: int | None = None
+        self._destroyed = False
+        self._fetching = False
         self._name: Gtk.Label | None = None
         self._price: Gtk.Label | None = None
         self._change: Gtk.Label | None = None
@@ -93,7 +94,6 @@ class StockModule(Module):
         gesture.connect("pressed", self._on_click)
         box.add_controller(gesture)
 
-        self._timer = GLib.timeout_add(10_000, self._poll)
         self._poll()
         return self._boxed(box)
 
@@ -152,7 +152,14 @@ class StockModule(Module):
             return
         self._apply_quote(result)
 
+    def on_tick(self) -> None:
+        # 窗口 tick 按 refresh_interval（默认 10s，见 window.rebuild_modules）节流
+        self._poll()
+
     def _poll(self) -> bool:
+        if self._destroyed or self._fetching:
+            return True
+        self._fetching = True
         symbol = self.symbol
         url = STOCK_URL.format(symbol=symbol, ts=int(datetime.now().timestamp()))
         req = urllib.request.Request(url, headers={"User-Agent": "Sidebay/1.0"})
@@ -165,6 +172,7 @@ class StockModule(Module):
                 return FETCH_FAILED
 
         def _done(result) -> None:
+            self._fetching = False
             if self._editing:
                 return
             self._apply_fetch_result(result)
@@ -174,6 +182,4 @@ class StockModule(Module):
         return True
 
     def on_destroy(self) -> None:
-        if self._timer is not None:
-            GLib.source_remove(self._timer)
-            self._timer = None
+        self._destroyed = True  # 阻止后续 tick 请求（无 timer 需清理）

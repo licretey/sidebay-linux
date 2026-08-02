@@ -24,10 +24,8 @@ from sidebay.app import SidebayApplication
 
 def main() -> int:
     _set_process_name("sidebay")
-    # 内存验收：GTK 4 默认 GL 渲染器在无 GPU 环境（Xvfb/llvmpipe）会加载
-    # libLLVM + NVIDIA 编译栈，空闲 RSS 约 270MB；cairo 渲染器约 95MB 且视觉一致。
-    # 用户可用环境变量 GSK_RENDERER 覆盖。
-    os.environ.setdefault("GSK_RENDERER", "cairo")
+    # 注：GSK_RENDERER=cairo 在 GTK 4.16+ 已移除（无效回退 GL/ngl）；
+    # gl 与 ngl 实测内存一致（RSS ~91MB 基线），保留默认即可。
     # Wayland 协议禁止客户端定位窗口（位置设置/贴边失效），且键盘监视
     # 仅 X11 可用。会话为 Wayland 时**强制**走 XWayland（GDK_BACKEND=x11）：
     # XWayland 客户端可经 XMoveResizeWindow 自定位（Mutter 会处理）。

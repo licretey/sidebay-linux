@@ -179,8 +179,14 @@ class SidebarWindow(Gtk.ApplicationWindow):
             except ValueError:
                 continue
             widget = module.build()
-            # 采集频率：模块行设置值（None = 默认 1s）
-            module.refresh_interval = m.refresh_interval or 1.0
+            # 采集频率：模块行设置值（None = 默认 1s）；
+            # 倒计时/秒表 UI 必须每秒更新，股票默认 10s 轮询
+            if m.type in ("Countdown", "Stopwatch"):
+                module.refresh_interval = 1.0
+            elif m.type == "Stock":
+                module.refresh_interval = m.refresh_interval or 10.0
+            else:
+                module.refresh_interval = m.refresh_interval or 1.0
             # 模块高度：height_pct > 0 时按侧边栏高度百分比，否则用 base._boxed 的 100px 默认
             if m.height_pct and m.height_pct > 0:
                 work_h = self._workarea[3] if hasattr(self, "_workarea") else 100
