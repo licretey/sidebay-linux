@@ -8,7 +8,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
-from gi.repository import Gdk, Gio, Gtk
+from gi.repository import GLib, Gdk, Gio, Gtk
 
 from sidebay.store import Store
 from sidebay.window import SidebarWindow
@@ -62,19 +62,24 @@ class SidebayApplication(Gtk.Application):
             return
         # 后台运行：应用 hold 保活，窗口全部隐藏后不退出
         self.hold()
-        self._start_tray()
-        if self.tray is None or not self.tray.registered:
-            # 无托盘（无 AppIndicator 扩展等）：回退为直接显示窗口
-            self.create_window()
+        # 延迟到主循环空闲时注册托盘：do_activate 早于主循环启动，
+        # 立即注册时 watcher 异步探测我们的对象无法分发回调，会被丢弃
+        GLib.idle_add(self._start_tray_deferred)
 
-    def _start_tray(self) -> None:
+    def _start_tray_deferred(self) -> bool:
         try:
             from sidebay.tray import TrayIcon
 
-            self.tray = TrayIcon(self)
-            self.tray.start()
+            tray = TrayIcon(self)
+            if tray.start():
+                self.tray = tray
+                return False
         except Exception:
-            self.tray = None
+            pass
+        # 无托盘（无 AppIndicator 扩展等）：回退为直接显示窗口
+        self.tray = None
+        self.create_window()
+        return False
 
     def _on_open_settings(self, *_a) -> None:
         from sidebay.settings import SettingsWindow
