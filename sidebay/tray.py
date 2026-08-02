@@ -23,9 +23,40 @@ APP_ID = "org.sidebay.SideBay"
 SNI_XML = """
 <node>
   <interface name="org.kde.StatusNotifierItem">
-    <method name="Activate"><arg type="i" direction="in"/><arg type="i" direction="in"/></method>
-    <method name="SecondaryActivate"><arg type="i" direction="in"/><arg type="i" direction="in"/></method>
-    <method name="ContextMenu"><arg type="i" direction="in"/><arg type="i" direction="in"/></method>
+    <method name="Activate"/>
+    <method name="SecondaryActivate"/>
+    <method name="ContextMenu"/>
+  </interface>
+</node>
+"""
+
+INTROSPECT_XML = """
+<node>
+  <interface name="org.freedesktop.DBus.Introspectable">
+    <method name="Introspect"><arg type="s" direction="out"/></method>
+  </interface>
+</node>
+"""
+
+# Introspect 返回的完整节点 XML：含 SNI（无参方法 + 属性）与 Properties
+_INTROSPECT_NODE_XML = """
+<node>
+  <interface name="org.kde.StatusNotifierItem">
+    <property name="Category" type="s" access="read"/>
+    <property name="Id" type="s" access="read"/>
+    <property name="Title" type="s" access="read"/>
+    <property name="Status" type="s" access="read"/>
+    <property name="Menu" type="o" access="read"/>
+    <property name="ItemIsMenu" type="b" access="read"/>
+    <property name="IconName" type="s" access="read"/>
+    <property name="IconPixmap" type="a(iiay)" access="read"/>
+    <method name="Activate"/>
+    <method name="SecondaryActivate"/>
+    <method name="ContextMenu"/>
+  </interface>
+  <interface name="org.freedesktop.DBus.Properties">
+    <method name="Get"><arg type="s" direction="in"/><arg type="s" direction="in"/><arg type="v" direction="out"/></method>
+    <method name="GetAll"><arg type="s" direction="in"/><arg type="a{sv}" direction="out"/></method>
   </interface>
 </node>
 """
@@ -42,7 +73,7 @@ PROPS_XML = """
 MENU_XML = """
 <node>
   <interface name="com.canonical.dbusmenu">
-    <method name="GetLayout"><arg type="i" direction="in"/><arg type="i" direction="in"/><arg type="as" direction="in"/><arg type="(ia{sv}av)" direction="out"/></method>
+    <method name="GetLayout"><arg type="i" direction="in"/><arg type="i" direction="in"/><arg type="as" direction="in"/><arg type="u" name="revision" direction="out"/><arg type="(ia{sv}av)" name="layout" direction="out"/></method>
     <method name="GetGroupProperties"><arg type="ai" direction="in"/><arg type="as" direction="in"/><arg type="a(ia{sv})" direction="out"/></method>
     <method name="GetProperty"><arg type="i" direction="in"/><arg type="s" direction="in"/><arg type="v" direction="out"/></method>
     <method name="Event"><arg type="i" direction="in"/><arg type="s" direction="in"/><arg type="v" direction="in"/><arg type="u" direction="in"/></method>
@@ -90,7 +121,8 @@ class TrayIcon:
             return False
 
     def _register_objects(self) -> None:
-        for path, xml in ((SNI_PATH, SNI_XML), (SNI_PATH, PROPS_XML), (MENU_PATH, MENU_XML)):
+        for path, xml in ((SNI_PATH, SNI_XML), (SNI_PATH, PROPS_XML), (SNI_PATH, INTROSPECT_XML),
+                          (MENU_PATH, MENU_XML), (MENU_PATH, INTROSPECT_XML)):
             node = Gio.DBusNodeInfo.new_for_xml(xml)
             self._conn.register_object(
                 path,
@@ -169,6 +201,9 @@ class TrayIcon:
                 self._on_sni(method, invocation)
             elif iface == "com.canonical.dbusmenu":
                 self._on_menu(method, params, invocation)
+            elif iface == "org.freedesktop.DBus.Introspectable":
+                # AppIndicator 扩展经 Introspect 探测我们是否支持 Activate
+                invocation.return_value(GLib.Variant("(s)", (_INTROSPECT_NODE_XML,)))
             else:
                 invocation.return_error_literal(
                     Gio.DBusError.NOT_SUPPORTED, f"unknown interface {iface}")
@@ -207,9 +242,9 @@ class TrayIcon:
                     "visible": GLib.Variant("b", True),
                 }
                 items.append(GLib.Variant("(ia{sv}av)", (item_id, props, [])))
-            # GIO 对单出参方法期望回复为 元组包裹 的签名：出参类型 (ia{sv}av)
-            # → 回复类型 ((ia{sv}av))。直接内联构建，避免 Variant 嵌套歧义。
-            reply = GLib.Variant("((ia{sv}av))", ((0, {}, items),))
+            # 官方 com.canonical.dbusmenu 规范：GetLayout 返回 (u revision, (ia{sv}av) layout)
+            # ——AppIndicator 扩展按此解构 [revision, root]，缺 revision 会导致解析失败
+            reply = GLib.Variant("(u(ia{sv}av))", (0, (0, {}, items)))
             invocation.return_value(reply)
         elif method == "GetGroupProperties":
             # 返回空属性集即可（AppIndicator 会按需 GetProperty/GetLayout）
